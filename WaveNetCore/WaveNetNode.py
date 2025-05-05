@@ -14,7 +14,7 @@ class NodeInfo:
 		self.neighbors.pop(ID)
 
 class Node:
-	epsilon = int(5e9) # 5 segundos
+	message_reset_time = int(5e9) # 5 segundos
 
 	def __init__(self, info, protocols, process):
 		self.info = info
@@ -31,7 +31,7 @@ class Node:
 
 		time = get_time()
 		data = packet.form()
-		if data in self.message_queue and time - self.message_queue[data] < Node.epsilon: return
+		if data in self.message_queue and time - self.message_queue[data] < Node.message_reset_time: return
 		self.message_queue[data] = time
 		if packet.dest == self.info.ID: self.process(packet.message)
 		prop(packet)
