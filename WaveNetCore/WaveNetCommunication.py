@@ -1,4 +1,19 @@
 from threading import Thread, Lock
+import time
+
+def get_time():
+	return time.time_ns()
+
+class Packet:
+	def __init__(self, message, dest):
+		self.message = message
+		self.dest = dest
+	
+	def form(self):
+		pass
+
+	def create(data):
+		pass
 
 class Protocol:
 	def __init__(self, sender, listener):
@@ -21,6 +36,6 @@ class Link:
 	def reverse(self):
 		return Link(self.dest, self.src, protocol)
 
-	def send(self, message):
-		self.protocol.send(message, self.dest)
+	def send(self, packet):
+		self.protocol.send(packet.form(), self.dest)
 
