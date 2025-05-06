@@ -1,3 +1,4 @@
+from enum import Enum
 from threading import Thread, Lock
 import time
 import socket
@@ -6,12 +7,10 @@ def get_time():
 	return time.time_ns()
 
 class Packet:
-	max_message_length = 1 << 9
-	max_destination_length = 1 << 8
+	max_destination_length = (1 << 8)
 
 	def __init__(self, message, dest):
 		self.message = message
-		assert(len(self.message) < Packet.max_message_length)
 		self.dest = dest
 		self.dest_encode = self.dest.encode()
 		assert(len(self.dest_encode) < Packet.max_destination_length)
@@ -23,17 +22,12 @@ class Packet:
 		length = data[0]
 		return Packet(data[1:1 + length].decode(), data[1 + length:])
 
-"""
-	def split(message, dest):
-		packets = []
-		for i in range((len(message) + Packet.max_message_length - 1)//Packet.max_message_length):
-			data = message[i*Packet.max_message_length:(i + 1)*Packet.max_message_length]
-			packets.append(Packet(data, dest))
-		return packets
-"""
+class ProtocolType(Enum):
+	LOCAL = 1
 
 class Protocol:
-	def __init__(self, sender, listener):
+	def __init__(self, protocol_type, sender, listener):
+		self.protocol_type = protocol_type
 		self.sender = sender
 		self.listener = listener
 
@@ -48,31 +42,40 @@ class Protocol:
 class LocalProtocol(Protocol):
 
 	IP = "127.0.0.1"
+	protocol_type = ProtocolType.LOCAL
 
 	def __init__(self, port=None):
 		self.port = port
-		super().__init__(self.sender, self.listener)
+		super().__init__(LocalProtocol.protocol_type, self.sender, self.listener)
 
 	def sender(self, packet, dest):
 		data = packet.form()
 
 		PORT = int(dest)
 
-		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		sock.sendto(data, (LocalProtocol.IP, PORT))
+		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+			s.connect((IP, PORT))
+			s.sendall(data)
 
 	def listener(self, func):
 		assert(self.port is not None)
 
 		PORT = self.port
 
-		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		sock.bind((LocalProtocol.IP, PORT))
-
-		while True:
-			data, _ = sock.recvfrom(1024)
-			packet = Packet.create(data)
-			func(packet)
+		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+			s.bind((IP, PORT))
+			s.listen()
+			while True:
+				conn, _ = s.accept()
+				parts = []
+				with conn:
+					while True:
+						data = conn.recv(1 << 12)
+						if not data: break
+						parts.append(data)
+				data = b''.join(parts)
+				packet = Packet.create(data)
+				func(packet)
 
 class Link:
 	def __init__(self, src, dest, protocol):

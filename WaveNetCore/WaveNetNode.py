@@ -1,9 +1,10 @@
 from threading import Thread, Lock
+
 import hashlib
 from WaveNetCommunication import *
 
 class NodeInfo:
-	def __init__(self, ID, neighbors):
+	def __init__(self, ID, neighbors=dict()):
 		self.ID = ID
 		self.neighbors = neighbors
 	
@@ -18,13 +19,13 @@ class Node:
 
 	def __init__(self, info, protocols, process):
 		self.info = info
-		self.protocols = protocols
+		self.protocols = {i.protocol_type: i for i in protocols}
 		self.process = process
 		self.message_queue = dict()
 		self.mutex = Lock()
 	
 	def listen(self):
-		for protocol in self.protocols: protocol.listen(self.recv)
+		for protocol_type, protocol in self.protocols: protocol.listen(self.recv)
 
 	def recv(self, packet):
 		self.mutex.acquire()
@@ -33,11 +34,11 @@ class Node:
 		data = packet.form()
 		if data in self.message_queue and time - self.message_queue[data] < Node.message_reset_time: return
 		self.message_queue[data] = time
-		if packet.dest == self.info.ID: self.process(packet.message)
+		if packet.dest == str(self.info.ID): self.process(packet.message)
 		prop(packet)
 
 		self.mutex.release()
-
+	
 	def send(self, message, dest):
 		packet = Packet(message, dest)
 		prop(packet)
