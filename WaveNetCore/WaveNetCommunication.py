@@ -9,9 +9,10 @@ def get_time():
 class Packet:
 	max_destination_length = (1 << 8)
 
-	def __init__(self, message, dest):
+	def __init__(self, message, dest, src=None):
 		self.message = message
 		self.dest = dest
+		self.src = src
 		self.dest_encode = self.dest.encode()
 		assert(len(self.dest_encode) < Packet.max_destination_length)
 	
@@ -66,7 +67,8 @@ class LocalProtocol(Protocol):
 			s.bind((IP, PORT))
 			s.listen()
 			while True:
-				conn, _ = s.accept()
+				conn, addr = s.accept()
+				rlink = Link(self, str(addr[1]))
 				parts = []
 				with conn:
 					while True:
@@ -75,17 +77,22 @@ class LocalProtocol(Protocol):
 						parts.append(data)
 				data = b''.join(parts)
 				packet = Packet.create(data)
-				func(packet)
+				func(packet, rlink)
 
 class Link:
-	def __init__(self, src, dest, protocol):
+	def __init__(self, dest, protocol):
 		self.protocol = protocol
-		self.src = src
 		self.dest = dest
 	
-	def reverse(self):
-		return Link(self.dest, self.src, self.protocol)
-
 	def send(self, packet):
 		self.protocol.send(packet, self.dest)
+	
+	def __str__(self):
+		return "|" + self.protocol.protocol_type.name + "|" + self.dest
+
+	def __hash__(self):
+		return str(self)
+	
+	def __eq__(self, other):
+		return str(self) == str(other)
 

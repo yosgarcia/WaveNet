@@ -4,15 +4,12 @@ import hashlib
 from WaveNetCommunication import *
 
 class NodeInfo:
-	def __init__(self, ID, neighbors=dict()):
+	def __init__(self, ID, neighbors=set()):
 		self.ID = ID
 		self.neighbors = neighbors
 	
-	def add_neighbor(self, ID, link):
-		self.neighbors[ID] = link
-	
-	def pop_neighbor(self, ID):
-		self.neighbors.pop(ID)
+	def add_neighbor(self, link):
+		self.neighbors.add(link)
 
 class Node:
 	message_reset_time = int(5e9) # 5 segundos
@@ -27,8 +24,10 @@ class Node:
 	def listen(self):
 		for protocol_type, protocol in self.protocols: protocol.listen(self.recv)
 
-	def recv(self, packet):
+	def recv(self, packet, rlink):
 		self.mutex.acquire()
+
+		self.info.add_neighbor(rlink)
 
 		time = get_time()
 		data = packet.form()
