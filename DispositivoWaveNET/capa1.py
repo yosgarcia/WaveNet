@@ -174,7 +174,7 @@ def main():
     file_path_bytes = "trama_128bytes_por_byte.wav"
     write(file_path_bytes, sample_rate, audio_int16)
 
-    print("Archivo guardado en:", file_path_bytes)
+    print("Archivo guardado en: ", file_path_bytes)
 
 if __name__ == '__main__':
     main()
