@@ -2,6 +2,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
+import json
+import base64
 
 class PublicKey:
 	def __init__(self, pem=None, public_key=None):
@@ -43,3 +47,25 @@ class PrivateKey:
 					label=None
 					)
 				)
+
+def AES_create_key():
+	key = AESGCM.generate_key(bit_length=256)
+	key64 = base64.b64encode(key).decode()
+	return key64
+
+def AES_encrypt(key64, data):
+	key = base64.decode(key64.encode())
+	aesgcm = AESGCM(key)
+	nonce = os.urandom(12)
+	body = aesgcm.encrypt(nonce, data.encode(), None)
+	nonce64 = base64.b64encode(nonce).decode()
+	body64 = base64.b64encode(body).decode()
+	return nonce64, body64
+
+def AES_decrypt(key64, nonce64, body64):
+	key = base64.decode(key64.encode())
+	aesgcm = AESGCM(key)
+	nonce = base64.b64decode(nonce64.encode())
+	body = base64.b64decode(body64.encode())
+	data = aesgcm.decrypt(nonce, body, None)
+	return data.decode()
