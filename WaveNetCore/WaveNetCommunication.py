@@ -1,27 +1,116 @@
 from enum import Enum
+import json
 from threading import Thread, Lock
-import time
+from datetime import datetime, timezone
 import socket
-
-def get_time():
-	return time.time_ns()
+from WaveNetCrypto import *
 
 class Packet:
-	max_destination_length = (1 << 8)
+	params = (
+			("src", int),
+			("dest", int),
+			("mtype", str),
+			("body", str),
+			("timestamp", str),
+		)
 
-	def __init__(self, message, dest, src=None):
-		self.message = message
-		self.dest = dest
+	def __init__(self, src, dest, mtype, body, timestamp=None):
 		self.src = src
-		self.dest_encode = self.dest.encode()
-		assert(len(self.dest_encode) < Packet.max_destination_length)
+		self.dest = dest
+		self.mtype = mtype
+		self.body = body
+		self.timestamp = timestamp if timestamp is not None else datetime.now(timezone.utc).isoformat()
 	
 	def form(self):
-		return len(self.dest_encode).to_bytes() + self.dest_encode + self.message
+		return json.dumps({
+			"enc" : False,
+			"src" : self.src,
+			"dest" : self.dest,
+			"type" : self.mtype,
+			"body" : self.body,
+			"timestamp" : self.timestamp
+			})
+	
+	def null(message):
+		return Packet(-1, -1, "error", message)
 
-	def create(data):
-		length = data[0]
-		return Packet(data[1:1 + length].decode(), data[1 + length:])
+	def is_null(self):
+		return self.mtype == "error"
+		
+
+class SecretPacket:
+	params = (
+			("meta", str),
+			("body", str),
+		)
+
+	def __init__(self, meta, body):
+		self.meta = meta
+		self.body = body
+
+	def form(self):
+		return json.dumps({
+			"enc" : True,
+			"meta" : self.meta,
+			"body" : self.body
+			})
+
+def verify_tag(parsed, name, etype):
+	if name not in parsed: return False, f"Missing {name} tag"
+	v = parsed[name]
+	if type(v) != etype: return False, f"Bad {name} tag"
+	return True, v
+
+def reconstruct_packet(data):
+	try:
+		parsed = json.loads(data)
+		status, enc = verify_tag(parsed, "enc", bool)
+		if not status: return Packet.null(enc)
+		if enc:
+			data = []
+			for name, etype in SecretPacket.params:
+				status, v = verify_tag(parsed, name, etype)
+				if not status: return Packet.null(v)
+				data.append(v)
+			return SecretPacket(data[0], data[1])
+		else:
+			data = []
+			for name, etype in Packet.params:
+				status, v = verify_tag(parsed, name, etype)
+				if not status: return Packet.null(v)
+				data.append(v)
+			return Packet(data[0], data[1], data[2], data[3], data[4])
+	except Exception as e:
+		return Packet.null("Formation Error " + str(e))
+
+
+def encrypt_packet(packet, public_key):
+	try:
+		data = packet.form()
+		key64 = AES_create_key()
+		nonce64, body64 = AES_encrypt(key64, data)
+		meta = public_key.encrypt(json.dumps({
+			"decrypted" : True,
+			"key" : key64,
+			"nonce" : nonce64,
+			}))
+		return SecretPacket(meta, body64)
+	except Exception as e:
+		return Packet.null("Formation Error " + str(e))
+
+def decrypt_packet(packet, private_key):
+	try:
+		parsed = json.loads(private_key.decrypt(packet.meta))
+		status, dec = verify_tag(parsed, "decrypted", bool)
+		if not status or not dec: return packet
+		status, key64 = verify_tag(parsed, "key", str)
+		if not status: return packet
+		status, nonce64 = verify_tag(parsed, "nonce", str)
+		if not status: return packet
+		data = AES_decrypt(key64, nonce64, packet.body)
+		return reconstruct_packet(data)
+	except Exception as e:
+		return packet
 
 class ProtocolType(Enum):
 	LOCAL = 1
@@ -67,8 +156,7 @@ class LocalProtocol(Protocol):
 			s.bind((IP, PORT))
 			s.listen()
 			while True:
-				conn, addr = s.accept()
-				rlink = Link(self, str(addr[1]))
+				conn, _ = s.accept()
 				parts = []
 				with conn:
 					while True:
@@ -76,8 +164,8 @@ class LocalProtocol(Protocol):
 						if not data: break
 						parts.append(data)
 				data = b''.join(parts)
-				packet = Packet.create(data)
-				func(packet, rlink)
+				packet = reconstruct_packet(data)
+				func(packet)
 
 class Link:
 	def __init__(self, dest, protocol):
