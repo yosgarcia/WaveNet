@@ -5,14 +5,6 @@ from random import randint
 import json
 from threading import Thread, Lock, Condition
 
-"""
-data
-join
-connect
-request <-> answer
-ping <-> pong
-"""
-
 class PacketWaiter:
 	timeout = 60.0
 
@@ -20,9 +12,10 @@ class PacketWaiter:
 		self.condition = Condition()
 		self.packet = Packet.null("Timeout")
 
-	def recv(self):
+	def recv(self, timeout=None):
 		with self.condition:
-			self.condition.wait(PacketWaiter.timeout)
+			if timeout is None: timeout = PacketWaiter.timeout
+			self.condition.wait(timeout)
 			return self.packet
 
 	def send(self, packet):
@@ -30,7 +23,7 @@ class PacketWaiter:
 		self.condition.notify_all()
 
 class MeshHub(Node):
-	def __init__(self, port=8000):
+	def __init__(self, port):
 		self.private_key = PrivateKey()
 		info = NodeInfo(0, self.private_key)
 		self.node = Node(info, [LocalProtocol(port)], self.delegate)
@@ -201,7 +194,7 @@ class MeshNode(Node):
 		if (ID, "data") not in self.awaits: self.awaits[(ID, "data")] = PacketWaiter()
 		waiter = self.awaits[(ID, "data")]
 		self.mutex.release()
-		packet = waiter.wait()
+		packet = waiter.wait(60.0*10 if ID is None else None)
 		if packet.is_null(): raise Exception(packet.body)
 		return packet.src, packet.body
 
