@@ -1,5 +1,6 @@
 from WaveNetNode import *
-from WaveNetCommunication import *
+from WaveNetPacketeering import *
+from WaveNetProtocols import *
 from WaveNetCrypto import *
 from random import randint
 import json
@@ -59,10 +60,8 @@ class MeshHub(Node):
 		if not status: raise Exception(protocol)
 		status, dest = verify_tag(data, "dest", str)
 		if not status: raise Exception(dest)
-		if protocol not in ProtocolType: raise Exception("Protocol doesn't exist")
-		link = None
-		if ProtocolType[protocol] = ProtocolType.LOCAL: link = Link(dest, LocalProtocol())
-		if link is not None: self.node.info.add_neighbor(link)
+		link = Link(dest, empty_protocol_from_str(protocol))
+		self.node.info.add_neighbor(link)
 
 	def process_ping(self, packet):
 		self.send(packet.src, "pong", "")
@@ -188,13 +187,13 @@ class MeshNode(Node):
 	def send_data(self, dest, message):
 		self.send(dest, "data", message)
 	
-	def recv_data(self, ID=None):
+	def recv_data(self, ID=None, timeout=None):
 		self.mutex.acquire()
 		waiter = None
 		if (ID, "data") not in self.awaits: self.awaits[(ID, "data")] = PacketWaiter()
 		waiter = self.awaits[(ID, "data")]
 		self.mutex.release()
-		packet = waiter.wait(60.0*10 if ID is None else None)
+		packet = waiter.wait(timeout)
 		if packet.is_null(): raise Exception(packet.body)
 		return packet.src, packet.body
 
@@ -219,10 +218,8 @@ class MeshNode(Node):
 		if not status: raise Exception(protocol)
 		status, dest = verify_tag(data, "dest", str)
 		if not status: raise Exception(dest)
-		if protocol not in ProtocolType: raise Exception("Protocol doesn't exist")
-		link = None
-		if ProtocolType[protocol] = ProtocolType.LOCAL: link = Link(dest, LocalProtocol())
-		if link is not None: self.node.info.add_neighbor(link)
+		link = Link(dest, empty_protocol_from_str(protocol))
+		self.node.info.add_neighbor(link)
 
 	def process_ping(self, packet):
 		self.send(packet.src, "pong", "")

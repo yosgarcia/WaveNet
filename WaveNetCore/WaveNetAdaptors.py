@@ -1,5 +1,6 @@
 from WaveNetMesh import *
 from WaveNetCommunication import *
+from WaveNetProtocols import *
 
 # Nada más crear instancia de y ya con esto basta
 # ping hace ping
@@ -46,9 +47,11 @@ class WaveNetBasicMeshNode(WaveNetMeshNode):
 		assert(type(message) == str)
 		super().send_data(dest, message)
 	
-	def listen(self):
-		return super().recv_data()
+	def listen(self, timeout=None):
+		assert(timeout is None or type(timeout) is float)
+		return super().recv_data(timeout=timeout)
 
-	def recv(self, ID):
+	def recv(self, ID, timeout=None):
 		assert(type(ID) == int)
-		return super().recv_data(ID)
+		assert(timeout is None or type(timeout) is float)
+		return super().recv_data(ID=ID, timeout=timeout)
