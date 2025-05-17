@@ -8,9 +8,18 @@ class NodeInfo:
 		self.ID = ID
 		self.neighbors = neighbors
 		self.private_key = private_key
+		self.mutex = Lock()
 	
 	def add_neighbor(self, link):
+		self.mutex.acquire()
 		self.neighbors.add(link)
+		self.mutex.release()
+	
+	def get_neighbors(self):
+		self.mutex.acquire()
+		ans = self.neighbors.copy()
+		self.mutex.release()
+		return ans
 
 class Node:
 	def __init__(self, info, protocols, process):
@@ -33,15 +42,21 @@ class Node:
 		if type(packet) == SecretPacket: packet = decrypt_packet(packet, self.info.private_key)
 		if type(packet) == Packet and packet.is_null(): return
 
-		if type(packet) == Packet and packet.dest == self.info.ID: self.process(packet)
-		prop(packet)
+		should_prop = True
+
+		if type(packet) == Packet and packet.dest == self.info.ID: should_prop = self.process(packet)
+		if should_prop: prop(packet)
 
 		self.mutex.release()
 	
-	def send(self, message, dest):
-		packet = Packet(message, dest)
+	def send(self, dest, mtype, message, show_src=True, public_key=None):
+		src = self.info.ID if show_src else -1
+		packet = Packet(src, dest, mtype, body)
+		if public_key is not None:
+			packet = encrypt_packet(packet, public_key)
+			if type(packet) == Packet: return
 		prop(packet)
 
 	def prop(self, packet):
-		for neighbor in self.info.neighbors:
+		for neighbor in self.info.get_neighbors():
 			neighbor.link.send(packet)

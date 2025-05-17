@@ -116,10 +116,11 @@ class ProtocolType(Enum):
 	LOCAL = 1
 
 class Protocol:
-	def __init__(self, protocol_type, sender, listener):
+	def __init__(self, protocol_type, sender, listener, as_public):
 		self.protocol_type = protocol_type
 		self.sender = sender
 		self.listener = listener
+		self.as_public = as_public
 
 	def send(self, data, dest):
 		self.sender(data, dest)
@@ -129,6 +130,9 @@ class Protocol:
 		t.run()
 		return t
 
+	def public(self):
+		return self.as_public()
+
 class LocalProtocol(Protocol):
 
 	IP = "127.0.0.1"
@@ -136,7 +140,7 @@ class LocalProtocol(Protocol):
 
 	def __init__(self, port=None):
 		self.port = port
-		super().__init__(LocalProtocol.protocol_type, self.sender, self.listener)
+		super().__init__(LocalProtocol.protocol_type, self.sender, self.listener, self.as_public)
 
 	def sender(self, packet, dest):
 		data = packet.form()
@@ -166,6 +170,9 @@ class LocalProtocol(Protocol):
 				data = b''.join(parts)
 				packet = reconstruct_packet(data)
 				func(packet)
+	
+	def as_public(self):
+		return str(self.port)
 
 class Link:
 	def __init__(self, dest, protocol):
@@ -173,7 +180,10 @@ class Link:
 		self.dest = dest
 	
 	def send(self, packet):
-		self.protocol.send(packet, self.dest)
+		try:
+			self.protocol.send(packet, self.dest)
+		except Exception as e:
+			pass
 	
 	def __str__(self):
 		return "|" + self.protocol.protocol_type.name + "|" + self.dest
