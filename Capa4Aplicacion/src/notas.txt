@@ -1,0 +1,100 @@
+# Crear entorno virtual
+python3 -m venv venv
+
+# Activar el entorno virtual
+source venv/bin/activate
+
+
+4. Para salir del entorno virtual
+
+deactivate
+
+=====================================================
+
+
+Ejecutar FIleHub.py: Nodo central que almacena que archivos tienen los demas nodos de la red
+
+python3 FileHub.py 
+
+
+Ejecutar FileRegistrar.py: El un cliente que se se comunica con el FileHub para notificarle que archivos tiene en su carpeta compartaida
+
+python3 FileRegistrar.py \
+  --dir ./wavenet_shared \
+  --host 127.0.0.1 \
+  --port 9000 \
+  --interval 5
+
+
+
+Ejecutar el FileServer.py:
+
+python3 FileServer.py --dir ./wavenet_shared --host 0.0.0.0 --port 9001
+
+
+Ejecutar el FileDownloader.py:
+
+python3 FileDownloader.py \
+  --file prueba.txt \
+  --hub-host 127.0.0.1 \
+  --hub-port 9000 \
+  --server-port 9001 \
+  --output ./downloads
+
+
+=====================================================
+
+Crear el directorio de archivos compartidos, por ejemplo:
+
+mkdir -p ./wavenet_shared
+
+Para probarlo, creamos un archivo de prueba en ese directorio y espera el intervalo de 5:
+
+echo "hola mundo" > ./wavenet_shared/prueba.txt
+
+
+dar permisos de ejecución a FileRegistrar: Pos si las moscas xd
+
+chmod +x src/FileRegistrar.py
+
+
+
+=====================================================
+
+Notas super importantes:
+
+Antes de proseguir con las siguientes fases, respóndeme una duda que tengo. Ya lo cambié y ya los probé y funcionó exitosamente. Tanto el FileHub como el FileRegistrar funcionaron correctamente al ejecutar el comando del FileRegistrar. También se registró el nodo correctamente con su IP correspondiente. Y en el FileHub también se registró de forma correcta y apareció el mensaje indicándolo de que prueba.txt estaba registrado o que ese archivo lo tiene el nodo y la dirección IP del nodo. Después también al ejecutar el FileServer y el FileDownloader también funcionaron de forma exitosa. El FileServer recibió las peticiones del FileDownloader y funcionó correctamente. Y se descargó el archivo en la carpeta que especificamos. Ahora, mi duda es la siguiente. Si yo ya quiero pasar a utilizar lo que está implementado en capa 1, en capa 2 y en capa 3. Actualmente únicamente tendría que cambiar la clase que creamos nueva que se llama MedioFisicoChannel. Que es donde viene a ser la interfaz de los canales de ByteDisk, la implementación. Y que actualmente está implementada sobre los Socket. Pero que en un futuro sería cambiar esta clase o esta interfaz para que empezara a usar el audio, el framing y la corrección de errores que ya serían implementadas en las otras tres capas. En capa 1, 2 y 3. Sería esta suposición que yo te estoy indicando, descorrecta.
+
+
+ChatGPT dijo:
+Tu suposición es correcta. Gracias a la separación de capas y a habernos quedado estrictamente en la Capa 4, el único punto de cambio para pasar de sockets a audio + framing + corrección de errores (Capas 1–3) es MedioFisicoChannel.py.
+
+Por qué basta con cambiar MedioFisicoChannel
+Inversión de dependencias
+
+Los cuatro módulos de aplicación (Hub, Registrar, Server, Downloader) no importan ni hablan de sockets: sólo usan la API de MedioFisicoChannel (connect(), bind_and_listen(), accept(), send(), recv(), close()).
+
+Si cambias la implementación interna de MedioFisicoChannel, todos los módulos superiores se adaptan automáticamente.
+
+Lógica de Capa 4 inalterada
+
+Toda la serialización (Packet.to_bytes(), Packet.from_bytes()) y la secuencia de mensajes (REGISTER_FILE, QUERY_FILE, FILE_CHUNK, etc.) sigue funcionando exactamente igual.
+
+Sólo cambia el “cómo” se transportan esos bytes (antes por TCP, luego por audio + framing + corrección).
+
+Rol de las Capas 1–3
+
+Capa 1 (Físico): convierte bits ⇄ señales de audio.
+
+Capa 2 (Enlace): framing de bits, delimitadores y detección de start/stop.
+
+Capa 3 (Red/Transporte): CRC/checksum, ARQ, reensamblado de tramas corruptas.
+
+Todo eso se implementa dentro de MedioFisicoChannel.send() y recv().
+
+Resumen de pasos para migrar a audio
+Reemplazar la lógica de sockets en MedioFisicoChannel por tu implementación de audio + framing + corrección de errores.
+
+Ajustar parámetros de modulación (FSK, ASK, sample rate, etc.) y de framing (tamano de trama, delimitadores) solo en ese archivo.
+
+Mantener intactos los cuatro módulos de Capa 4: seguirán funcionando sin tocar ni una línea más.
