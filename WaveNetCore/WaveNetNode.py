@@ -1,8 +1,8 @@
 from threading import Thread, Lock
 import time
 import hashlib
-from WaveNetPacketeering import *
-from WaveNetProtocols import *
+from .WaveNetPacketeering import *
+from .WaveNetProtocols import *
 
 class NodeInfo:
 	def __init__(self, ID, private_key, neighbors=set()):
@@ -31,10 +31,15 @@ class Node:
 		self.mutex = Lock()
 	
 	def listen(self):
-		for protocol_type, protocol in self.protocols: protocol.listen(self.recv)
+		for protocol_type, protocol in self.protocols.items(): protocol.listen(self.recv)
+	
+	def kill(self):
+		for protocol_type, protocol in self.protocols.items(): protocol.kill()
 
-	def recv(self, packet):
+	def recv(self, original):
 		self.mutex.acquire()
+
+		packet = original
 
 		data = packet.form()
 		if data in self.messages: return
@@ -46,18 +51,18 @@ class Node:
 		should_prop = True
 
 		if type(packet) == Packet and packet.dest == self.info.ID: should_prop = self.process(packet)
-		if should_prop: prop(packet)
+		if should_prop: self.prop(original)
 
 		self.mutex.release()
 	
 	def send(self, dest, mtype, message, show_src=True, public_key=None):
 		src = self.info.ID if show_src else -1
-		packet = Packet(src, dest, mtype, body)
+		packet = Packet(src, dest, mtype, message)
 		if public_key is not None:
 			packet = encrypt_packet(packet, public_key)
 			if type(packet) == Packet: return
-		prop(packet)
+		self.prop(packet)
 
 	def prop(self, packet):
 		for neighbor in self.info.get_neighbors():
-			neighbor.link.send(packet)
+			neighbor.send(packet)

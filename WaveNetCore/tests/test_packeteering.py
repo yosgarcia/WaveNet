@@ -8,8 +8,6 @@ def test_normal_packet_roundtrip():
 	original = pkt.Packet(1, 2, "ping", "Hello atcoder")
 	data = original.form()
 	reconstructed = pkt.reconstruct_packet(data)
-	print(data)
-	print(reconstructed)
 
 	assert isinstance(reconstructed, pkt.Packet)
 	assert reconstructed.src == original.src
@@ -44,8 +42,9 @@ def test_packet_encrypt_decrypt_cycle():
 	original = pkt.Packet(10, 20, "data", "Secure data hmmmjmjmmmxmmm")
 	secret = pkt.encrypt_packet(original, pub)
 
-	print(secret)
 	assert isinstance(secret, pkt.SecretPacket)
+	data = secret.form()
+	secret = pkt.reconstruct_packet(data)
 
 	decrypted = pkt.decrypt_packet(secret, priv)
 

@@ -95,13 +95,15 @@ def encrypt_packet(packet, public_key):
 			"key" : key64,
 			"nonce" : nonce64,
 			}).encode())
-		return SecretPacket(meta, body64)
+		meta64 = base64.b64encode(meta).decode()
+		return SecretPacket(meta64, body64)
 	except Exception as e:
 		return Packet.null("Formation Error " + str(e))
 
 def decrypt_packet(packet, private_key):
 	try:
-		parsed = json.loads(private_key.decrypt(packet.meta))
+		meta = base64.b64decode(packet.meta.encode())
+		parsed = json.loads(private_key.decrypt(meta))
 		status, dec = verify_tag(parsed, "decrypted", bool)
 		if not status or not dec: return packet
 		status, key64 = verify_tag(parsed, "key", str)

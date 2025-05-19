@@ -53,24 +53,27 @@ class LocalProtocol(Protocol):
 
 		PORT = self.port
 
+		def process_conn(conn):
+			parts = []
+			with conn:
+				while True:
+					data = conn.recv(1 << 12)
+					if not data: break
+					parts.append(data)
+			data = b''.join(parts)
+			packet = reconstruct_packet(data)
+			func(packet)
+
 		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 			s.bind((LocalProtocol.IP, PORT))
-			s.listen()
-			s.settimeout(1.0)
+			s.listen(10)
+			s.settimeout(1)
 			while not switch.is_set():
 				try:
 					conn, _ = s.accept()
-					parts = []
-					with conn:
-						while True:
-							data = conn.recv(1 << 12)
-							if not data: break
-							parts.append(data)
-					data = b''.join(parts)
-					packet = reconstruct_packet(data)
-					func(packet)
+					Thread(target=process_conn, args=(conn,), daemon=True).start()
 				except socket.timeout:
-					continue
+					pass
 
 	def as_public(self):
 		return str(self.port)
