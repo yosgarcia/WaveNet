@@ -1,6 +1,7 @@
 import json
+import base64
 from datetime import datetime, timezone
-from WaveNetCrypto import *
+from .WaveNetCrypto import *
 
 class Packet:
 	params = (
@@ -23,7 +24,7 @@ class Packet:
 			"enc" : False,
 			"src" : self.src,
 			"dest" : self.dest,
-			"type" : self.mtype,
+			"mtype" : self.mtype,
 			"body" : self.body,
 			"timestamp" : self.timestamp
 			})
@@ -33,7 +34,10 @@ class Packet:
 
 	def is_null(self):
 		return self.mtype == "error"
-		
+
+	def __str__(self):
+		return self.form()
+
 
 class SecretPacket:
 	params = (
@@ -90,7 +94,7 @@ def encrypt_packet(packet, public_key):
 			"decrypted" : True,
 			"key" : key64,
 			"nonce" : nonce64,
-			}))
+			}).encode())
 		return SecretPacket(meta, body64)
 	except Exception as e:
 		return Packet.null("Formation Error " + str(e))
