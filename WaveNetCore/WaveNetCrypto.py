@@ -9,20 +9,20 @@ import base64
 
 class PublicKey:
 	def __init__(self, pem=None, public_key=None):
-		assert((pem is None)^(public_key is None))
+		assert (pem is None)^(public_key is None)
 		if pem is not None:
 			self.public_key = serialization.load_pem_public_key(pem)
 		if public_key is not None:
 			self.public_key = public_key
 	
 	def __str__(self):
-		return public_key.public_bytes(
+		return self.public_key.public_bytes(
 				encoding=serialization.Encoding.PEM,
 				format=serialization.PublicFormat.SubjectPublicKeyInfo
-				)
+				).decode()
 
 	def encrypt(self, data):
-		return public_key.encrypt(
+		return self.public_key.encrypt(
 				data,
 				padding.OAEP(
 					mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -39,7 +39,7 @@ class PrivateKey:
 		return PublicKey(public_key=self.private_key.public_key())
 
 	def decrypt(self, data):
-		return private_key.decrypt(
+		return self.private_key.decrypt(
 				data,
 				padding.OAEP(
 					mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -54,7 +54,7 @@ def AES_create_key():
 	return key64
 
 def AES_encrypt(key64, data):
-	key = base64.decode(key64.encode())
+	key = base64.b64decode(key64.encode())
 	aesgcm = AESGCM(key)
 	nonce = os.urandom(12)
 	body = aesgcm.encrypt(nonce, data.encode(), None)
@@ -63,7 +63,7 @@ def AES_encrypt(key64, data):
 	return nonce64, body64
 
 def AES_decrypt(key64, nonce64, body64):
-	key = base64.decode(key64.encode())
+	key = base64.b64decode(key64.encode())
 	aesgcm = AESGCM(key)
 	nonce = base64.b64decode(nonce64.encode())
 	body = base64.b64decode(body64.encode())
