@@ -1,8 +1,8 @@
 from enum import Enum
 import json
 import socket
-from threading import Thread, Lock
-from WaveNetPacketeering import *
+from threading import Thread, Event
+from .WaveNetPacketeering import *
 
 class ProtocolType(Enum):
 	LOCAL = 1
@@ -13,17 +13,22 @@ class Protocol:
 		self.sender = sender
 		self.listener = listener
 		self.as_public = as_public
+		self.switch = Event()
 
 	def send(self, data, dest):
 		self.sender(data, dest)
 
 	def listen(self, func):
-		t = Thread(target=self.listener, args=[func])
-		t.run()
+		self.switch.clear()
+		t = Thread(target=self.listener, args=[func, self.switch], daemon=True)
+		t.start()
 		return t
 
 	def public(self):
 		return self.as_public()
+
+	def kill(self):
+		self.switch.set()
 
 class LocalProtocol(Protocol):
 
@@ -40,36 +45,40 @@ class LocalProtocol(Protocol):
 		PORT = int(dest)
 
 		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-			s.connect((IP, PORT))
-			s.sendall(data)
+			s.connect((LocalProtocol.IP, PORT))
+			s.sendall(data.encode())
 
-	def listener(self, func):
-		assert(self.port is not None)
+	def listener(self, func, switch):
+		assert self.port is not None
 
 		PORT = self.port
 
 		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-			s.bind((IP, PORT))
+			s.bind((LocalProtocol.IP, PORT))
 			s.listen()
-			while True:
-				conn, _ = s.accept()
-				parts = []
-				with conn:
-					while True:
-						data = conn.recv(1 << 12)
-						if not data: break
-						parts.append(data)
-				data = b''.join(parts)
-				packet = reconstruct_packet(data)
-				func(packet)
+			s.settimeout(1.0)
+			while not switch.is_set():
+				try:
+					conn, _ = s.accept()
+					parts = []
+					with conn:
+						while True:
+							data = conn.recv(1 << 12)
+							if not data: break
+							parts.append(data)
+					data = b''.join(parts)
+					packet = reconstruct_packet(data)
+					func(packet)
+				except socket.timeout:
+					continue
 
 	def as_public(self):
 		return str(self.port)
 
 def empty_protocol_from_str(name):
-	assert(name in ProtocolType)
+	assert name in ProtocolType.__members__
 	if ProtocolType[name] == ProtocolType.LOCAL: return LocalProtocol()
-	assert(False)
+	assert False
 
 class Link:
 	def __init__(self, dest, protocol):
@@ -77,16 +86,13 @@ class Link:
 		self.dest = dest
 
 	def send(self, packet):
-		try:
-			self.protocol.send(packet, self.dest)
-		except Exception as e:
-			pass
+		self.protocol.send(packet, self.dest)
 
 	def __str__(self):
 		return "|" + self.protocol.protocol_type.name + "|" + self.dest
 
 	def __hash__(self):
-		return str(self)
+		return hash(str(self))
 
 	def __eq__(self, other):
 		return str(self) == str(other)
