@@ -5,22 +5,19 @@ from .WaveNetPacketeering import *
 from .WaveNetProtocols import *
 
 class NodeInfo:
-	def __init__(self, ID, private_key, neighbors=set()):
+	def __init__(self, ID, private_key, neighbors=None):
 		self.ID = ID
-		self.neighbors = neighbors
+		self.neighbors = neighbors if neighbors is not None else set()
 		self.private_key = private_key
 		self.mutex = Lock()
 	
 	def add_neighbor(self, link):
-		self.mutex.acquire()
-		self.neighbors.add(link)
-		self.mutex.release()
+		with self.mutex:
+			self.neighbors.add(link)
 	
 	def get_neighbors(self):
-		self.mutex.acquire()
-		ans = self.neighbors.copy()
-		self.mutex.release()
-		return ans
+		with self.mutex:
+			return self.neighbors.copy()
 
 class Node:
 	def __init__(self, info, protocols, process):
@@ -37,32 +34,29 @@ class Node:
 		for protocol_type, protocol in self.protocols.items(): protocol.kill()
 
 	def recv(self, original):
-		self.mutex.acquire()
+		with self.mutex:
+			packet = original
 
-		packet = original
+			if hash(packet) in self.messages: return
+			self.messages.add(hash(packet))
 
-		data = packet.form()
-		if data in self.messages: return
-		self.messages.add(data)
+			if type(packet) == SecretPacket: packet = decrypt_packet(packet, self.info.private_key)
+			if type(packet) == Packet and packet.is_null(): return
 
-		if type(packet) == SecretPacket: packet = decrypt_packet(packet, self.info.private_key)
-		if type(packet) == Packet and packet.is_null(): return
+			should_prop = True
 
-		should_prop = True
-
-		if type(packet) == Packet and packet.dest == self.info.ID: should_prop = self.process(packet)
-		if should_prop: self.prop(original)
-
-		self.mutex.release()
-	
+			if type(packet) == Packet and packet.dest == self.info.ID: should_prop = self.process(packet)
+			if should_prop: self.prop(original)
+		
 	def send(self, dest, mtype, message, show_src=True, public_key=None):
-		src = self.info.ID if show_src else -1
-		packet = Packet(src, dest, mtype, message)
-		if public_key is not None:
-			packet = encrypt_packet(packet, public_key)
-			if type(packet) == Packet: return
-		self.prop(packet)
+		with self.mutex:
+			src = self.info.ID if show_src else -1
+			packet = Packet(src, dest, mtype, message)
+			if public_key is not None:
+				packet = encrypt_packet(packet, public_key)
+				if type(packet) == Packet:return
+			self.messages.add(hash(packet))
+			self.prop(packet)
 
 	def prop(self, packet):
-		for neighbor in self.info.get_neighbors():
-			neighbor.send(packet)
+		for neighbor in self.info.get_neighbors(): neighbor.send(packet)

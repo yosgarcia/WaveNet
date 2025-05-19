@@ -38,6 +38,9 @@ class Packet:
 	def __str__(self):
 		return self.form()
 
+	def __hash__(self):
+		return hash(str(self))
+
 
 class SecretPacket:
 	params = (
@@ -55,6 +58,12 @@ class SecretPacket:
 			"meta" : self.meta,
 			"body" : self.body
 			})
+
+	def __str__(self):
+		return self.form()
+
+	def __hash__(self):
+		return hash(str(self))
 
 def verify_tag(parsed, name, etype):
 	if name not in parsed: return False, f"Missing {name} tag"

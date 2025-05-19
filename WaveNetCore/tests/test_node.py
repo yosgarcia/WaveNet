@@ -52,6 +52,8 @@ def test_plain_packet_propagation(setup_nodes):
 
 	nodes[0].send(3, "ping", "fishmaster199")
 
+	time.sleep(1)
+
 	assert any(p.body == "fishmaster199" for p in queues[3])
 
 
@@ -60,5 +62,7 @@ def test_encrypted_packet_propagation(setup_nodes):
 
 	public_key_C = keys[2].public_key()
 	nodes[1].send(2, "data", "lulakibab", public_key=public_key_C)
+
+	time.sleep(1)
 
 	assert any(p.body == "lulakibab" for p in queues[2])
