@@ -6,6 +6,7 @@ from random import randint
 import json
 import time
 from threading import Thread, Lock, Condition
+import logging
 
 class PacketWaiter:
 	timeout = 5.0
@@ -123,7 +124,8 @@ class MeshHub(Node):
 				if packet.mtype == "request": self.process_request(packet)
 				if packet.mtype == "join": self.process_join(packet)
 			except Exception as e:
-				raise e
+				logging.warning("Couldn't process a message properly...")
+				logging.error(str(e))
 		return True
 
 	def listen(self):
@@ -276,7 +278,9 @@ class MeshNode(Node):
 				if packet.mtype == "answer": self.process_answer(packet)
 				if packet.mtype == "data": self.process_data(packet)
 			except Exception as e:
-				raise e
+				# raise e
+				logging.warning("Couldn't process a message properly...")
+				logging.error(str(e))
 		return True
 
 	def listen(self):

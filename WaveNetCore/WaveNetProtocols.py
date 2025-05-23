@@ -3,6 +3,7 @@ import json
 import socket
 from threading import Thread, Event
 from .WaveNetPacketeering import *
+import logging
 
 class ProtocolType(Enum):
 	LOCAL = 1

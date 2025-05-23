@@ -2,6 +2,7 @@ import json
 import base64
 from datetime import datetime, timezone
 from .WaveNetCrypto import *
+import logging
 
 class Packet:
 	params = (
@@ -91,6 +92,7 @@ def reconstruct_packet(data):
 				data.append(v)
 			return Packet(data[0], data[1], data[2], data[3], data[4])
 	except Exception as e:
+		logging.warning("Received a bad data")
 		return Packet.null("Formation Error " + str(e))
 
 
@@ -107,6 +109,7 @@ def encrypt_packet(packet, public_key):
 		meta64 = base64.b64encode(meta).decode()
 		return SecretPacket(meta64, body64)
 	except Exception as e:
+		logging.error("Yeah, I couldn't encrypt this packet...")
 		return Packet.null("Formation Error " + str(e))
 
 def decrypt_packet(packet, private_key):
@@ -122,5 +125,6 @@ def decrypt_packet(packet, private_key):
 		data = AES_decrypt(key64, nonce64, packet.body)
 		return reconstruct_packet(data)
 	except Exception as e:
+		logging.info("Couldn't decrypt packet, maybe it's not for me?")
 		return packet
 
