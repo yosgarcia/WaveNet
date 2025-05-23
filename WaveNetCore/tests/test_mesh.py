@@ -1,6 +1,6 @@
 import pytest
-from WaveNetCore.WaveNetMesh import *
-from WaveNetCore.WaveNetProtocols import *
+from wavenetcore.WaveNetMesh import *
+from wavenetcore.WaveNetProtocols import *
 import time
 from threading import Thread
 

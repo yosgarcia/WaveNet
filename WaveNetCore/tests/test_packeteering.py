@@ -1,8 +1,8 @@
 import pytest
 import json
 import base64
-from WaveNetCore import WaveNetPacketeering as pkt
-from WaveNetCore import WaveNetCrypto as crypto
+import wavenetcore.WaveNetPacketeering as pkt
+import wavenetcore.WaveNetCrypto as crypto
 from datetime import datetime, timezone
 import time
 

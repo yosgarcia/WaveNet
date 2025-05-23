@@ -1,7 +1,7 @@
 import json
 import base64
 from datetime import datetime, timezone
-from .WaveNetCrypto import *
+from wavenetcore.WaveNetCrypto import *
 import logging
 
 class Packet:

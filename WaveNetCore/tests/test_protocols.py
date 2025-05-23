@@ -1,7 +1,7 @@
 import pytest
 import time
-from WaveNetCore.WaveNetProtocols import *
-from WaveNetCore.WaveNetPacketeering import Packet
+from wavenetcore.WaveNetProtocols import *
+from wavenetcore.WaveNetPacketeering import Packet
 
 def test_empty_protocol_from_str_matches_enum():
 	for name in ProtocolType.__members__:

@@ -1,5 +1,5 @@
 import pytest
-from WaveNetCore import WaveNetCrypto as crypto
+import wavenetcore.WaveNetCrypto as crypto
 
 def test_aes_encryption_decryption():
 	key = crypto.AES_create_key()

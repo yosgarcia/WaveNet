@@ -1,8 +1,8 @@
 import pytest
 import time
-from WaveNetCore.WaveNetNode import *
-from WaveNetCore.WaveNetProtocols import *
-from WaveNetCore.WaveNetCrypto import *
+from wavenetcore.WaveNetNode import *
+from wavenetcore.WaveNetProtocols import *
+from wavenetcore.WaveNetCrypto import *
 
 def test_nodeinfo_neighbor_addition():
 

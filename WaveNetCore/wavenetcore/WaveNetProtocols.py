@@ -2,7 +2,7 @@ from enum import Enum
 import json
 import socket
 from threading import Thread, Event
-from .WaveNetPacketeering import *
+from wavenetcore.WaveNetPacketeering import *
 import logging
 
 class ProtocolType(Enum):

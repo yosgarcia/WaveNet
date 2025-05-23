@@ -1,8 +1,8 @@
 from threading import Thread, Lock
 import time
 import hashlib
-from .WaveNetPacketeering import *
-from .WaveNetProtocols import *
+from wavenetcore.WaveNetPacketeering import *
+from wavenetcore.WaveNetProtocols import *
 
 class NodeInfo:
 	def __init__(self, ID, private_key, neighbors=None):

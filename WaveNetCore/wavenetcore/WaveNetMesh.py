@@ -1,7 +1,7 @@
-from .WaveNetNode import *
-from .WaveNetPacketeering import *
-from .WaveNetProtocols import *
-from .WaveNetCrypto import *
+from wavenetcore.WaveNetNode import *
+from wavenetcore.WaveNetPacketeering import *
+from wavenetcore.WaveNetProtocols import *
+from wavenetcore.WaveNetCrypto import *
 from random import randint
 import json
 import time

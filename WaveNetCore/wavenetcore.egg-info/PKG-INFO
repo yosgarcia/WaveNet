@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: wavenetcore
+Version: 0.1.0
+Summary: A core mesh network library
+Author: Maximilian Latysh
+Requires-Dist: cryptography
+Requires-Dist: pytest
