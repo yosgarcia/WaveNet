@@ -25,7 +25,8 @@ def test_link_str_eq_hash():
 	assert hash(link1) == hash(link2)
 	assert hash(link1) != hash(link3)
 
-def test_link_sending_and_receiving_packet():
+def test_link_sending_and_receiving_packet_local():
+	time.sleep(0.5)
 	recv_port = 9100
 	receiver = LocalProtocol(port=recv_port)
 	received = []
@@ -35,6 +36,37 @@ def test_link_sending_and_receiving_packet():
 	time.sleep(0.5)
 
 	link = Link(str(recv_port), LocalProtocol())
+	pkt = Packet(src=1, dest=2, mtype="msg", body="hello")
+	link.send(pkt)
+
+	time.sleep(0.5)
+	receiver.kill()
+
+	assert len(received) == 1
+	assert isinstance(received[0], Packet)
+	assert received[0].src == pkt.src
+	assert received[0].dest == pkt.dest
+	assert received[0].body == pkt.body
+	assert received[0].mtype == pkt.mtype
+
+def test_link_sending_and_receiving_packet_ip():
+	time.sleep(0.5)
+	recv_ip = "127.0.0.1"
+	recv_port = 9100
+	receiver = IPProtocol(ip=recv_ip, port=recv_port)
+	received = []
+
+	thread = receiver.listen(lambda packet: received.append(packet))
+
+	time.sleep(0.5)
+
+	data = {
+			"ip" : recv_ip,
+			"port" : recv_port
+			}
+	dest = json.dumps(data)
+
+	link = Link(dest, IPProtocol())
 	pkt = Packet(src=1, dest=2, mtype="msg", body="hello")
 	link.send(pkt)
 

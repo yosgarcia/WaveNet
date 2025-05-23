@@ -7,6 +7,7 @@ import logging
 
 class ProtocolType(Enum):
 	LOCAL = 1
+	IP = 2
 
 class Protocol:
 	def __init__(self, protocol_type, sender, listener, as_public):
@@ -38,6 +39,7 @@ class LocalProtocol(Protocol):
 
 	def __init__(self, port=None):
 		self.port = port
+		if self.port is not None: assert type(self.port) == int
 		super().__init__(LocalProtocol.protocol_type, self.sender, self.listener, self.as_public)
 
 	def sender(self, packet, dest):
@@ -79,9 +81,68 @@ class LocalProtocol(Protocol):
 	def as_public(self):
 		return str(self.port)
 
+class IPProtocol(Protocol):
+
+	protocol_type = ProtocolType.IP
+
+	def __init__(self, ip=None, port=None):
+		self.ip = ip
+		self.port = port
+		if self.ip is not None: assert type(self.ip) == str
+		if self.port is not None: assert type(self.port) == int
+		super().__init__(IPProtocol.protocol_type, self.sender, self.listener, self.as_public)
+
+	def sender(self, packet, dest):
+		IP, PORT = None, None
+
+		data = json.loads(dest)
+		status, IP = verify_tag(data, "ip", str)
+		if not status: raise Exception(IP)
+		status, PORT = verify_tag(data, "port", int)
+		if not status: raise Exception(PORT)
+
+		data = packet.form()
+
+		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+			s.connect((IP, PORT))
+			s.sendall(data.encode())
+
+	def listener(self, func, switch):
+		assert self.port is not None
+		assert self.ip is not None
+
+		IP = self.ip
+		PORT = self.port
+
+		def process_conn(conn):
+			parts = []
+			with conn:
+				while True:
+					data = conn.recv(1 << 12)
+					if not data: break
+					parts.append(data)
+			data = b''.join(parts)
+			packet = reconstruct_packet(data)
+			func(packet)
+
+		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+			s.bind((IP, PORT))
+			s.listen(10)
+			s.settimeout(1)
+			while not switch.is_set():
+				try:
+					conn, _ = s.accept()
+					Thread(target=process_conn, args=(conn,), daemon=True).start()
+				except socket.timeout:
+					pass
+
+	def as_public(self):
+		return str(self.port)
+
 def empty_protocol_from_str(name):
 	assert name in ProtocolType.__members__
 	if ProtocolType[name] == ProtocolType.LOCAL: return LocalProtocol()
+	if ProtocolType[name] == ProtocolType.IP: return IPProtocol()
 	assert False
 
 class Link:
