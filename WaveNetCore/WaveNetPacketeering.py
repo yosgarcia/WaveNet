@@ -42,6 +42,10 @@ class Packet:
 	def __hash__(self):
 		return hash(str(self))
 
+	def __eq__(self, other):
+		if type(other) != type(self): return False
+		return self.form() == other.form()
+
 
 class SecretPacket:
 	params = (
@@ -65,6 +69,10 @@ class SecretPacket:
 
 	def __hash__(self):
 		return hash(str(self))
+
+	def __eq__(self, other):
+		if type(other) != type(self): return False
+		return self.form() == other.form()
 
 def verify_tag(parsed, name, etype):
 	if name not in parsed: return False, f"Missing {name} tag"

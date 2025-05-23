@@ -3,27 +3,49 @@ import json
 import base64
 from WaveNetCore import WaveNetPacketeering as pkt
 from WaveNetCore import WaveNetCrypto as crypto
+from datetime import datetime, timezone
+import time
+
+def test_packet_equality():
+	date1 = datetime.now(timezone.utc).isoformat()
+	time.sleep(0.5)
+	date2 = datetime.now(timezone.utc).isoformat()
+	A1 = pkt.Packet(1, 2, "ping", "Hello atcoder", date1)
+	A2 = pkt.Packet(1, 2, "ping", "Hello atcoder", date1)
+	A3 = pkt.Packet(1, 2, "ping", "Bye atcoder", date1)
+	A4 = pkt.Packet(1, 2, "waka", "Hello atcoder", date1)
+	A5 = pkt.Packet(1, 3, "ping", "Hello atcoder", date1)
+	A6 = pkt.Packet(5, 2, "ping", "Hello atcoder", date1)
+	A7 = pkt.Packet(1, 2, "ping", "Hello atcoder", date2)
+	B1 = pkt.SecretPacket("unga bunga bro", "duga buga lala")
+	B2 = pkt.SecretPacket("unga bunga bro", "duga buga lala")
+	B3 = pkt.SecretPacket("unga bunga bro", "NOT duga buga lala")
+	B4 = pkt.SecretPacket("unga bunga shorty", "duga buga lala")
+
+	assert A1 == A2
+	assert A1 != A3
+	assert A1 != A4
+	assert A1 != A5
+	assert A1 != A6
+	assert A1 != A7
+
+	assert B1 == B2
+	assert B1 != B3
+	assert B1 != B4
 
 def test_normal_packet_roundtrip():
 	original = pkt.Packet(1, 2, "ping", "Hello atcoder")
 	data = original.form()
 	reconstructed = pkt.reconstruct_packet(data)
 
-	assert isinstance(reconstructed, pkt.Packet)
-	assert reconstructed.src == original.src
-	assert reconstructed.dest == original.dest
-	assert reconstructed.mtype == original.mtype
-	assert reconstructed.body == original.body
-	assert reconstructed.timestamp == original.timestamp
+	assert original == reconstructed
 
 def test_secret_packet_roundtrip():
 	sp = pkt.SecretPacket("unga bunga bro", "duga buga lala")
 	data = sp.form()
 	reconstructed = pkt.reconstruct_packet(data)
 
-	assert isinstance(reconstructed, pkt.SecretPacket)
-	assert reconstructed.meta == sp.meta
-	assert reconstructed.body == sp.body
+	assert sp == reconstructed
 
 def test_reconstruct_bad_data_returns_null():
 	p = pkt.reconstruct_packet("I want a fish that does not taste like json")
@@ -48,12 +70,7 @@ def test_packet_encrypt_decrypt_cycle():
 
 	decrypted = pkt.decrypt_packet(secret, priv)
 
-	assert isinstance(decrypted, pkt.Packet)
-	assert decrypted.src == original.src
-	assert decrypted.dest == original.dest
-	assert decrypted.mtype == original.mtype
-	assert decrypted.body == original.body
-	assert decrypted.timestamp == original.timestamp
+	assert original == decrypted
 
 def test_corrupted_secret_packet_fails_gracefully():
 	priv = crypto.PrivateKey()
@@ -70,6 +87,4 @@ def test_corrupted_secret_packet_fails_gracefully():
 	corrupted_packet = pkt.SecretPacket(secret.meta, corrupted_body)
 	decrypted = pkt.decrypt_packet(corrupted_packet, priv)
 
-	assert isinstance(decrypted, pkt.SecretPacket)
-	assert decrypted.meta == secret.meta
-	assert decrypted.body == corrupted_body
+	assert decrypted == corrupted_packet 

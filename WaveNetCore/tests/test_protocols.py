@@ -1,9 +1,5 @@
 import pytest
 import time
-if __name__ == "__main__":
-	import sys
-	import os
-	sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from WaveNetCore.WaveNetProtocols import *
 from WaveNetCore.WaveNetPacketeering import Packet
 
@@ -43,11 +39,7 @@ def test_link_sending_and_receiving_packet_local():
 	receiver.kill()
 
 	assert len(received) == 1
-	assert isinstance(received[0], Packet)
-	assert received[0].src == pkt.src
-	assert received[0].dest == pkt.dest
-	assert received[0].body == pkt.body
-	assert received[0].mtype == pkt.mtype
+	assert pkt == received[0]
 
 def test_link_sending_and_receiving_packet_ip():
 	time.sleep(0.5)
@@ -74,11 +66,5 @@ def test_link_sending_and_receiving_packet_ip():
 	receiver.kill()
 
 	assert len(received) == 1
-	assert isinstance(received[0], Packet)
-	assert received[0].src == pkt.src
-	assert received[0].dest == pkt.dest
-	assert received[0].body == pkt.body
-	assert received[0].mtype == pkt.mtype
+	assert pkt == received[0]
 
-if __name__ == "__main__":
-	test_link_sending_and_receiving_packet()
