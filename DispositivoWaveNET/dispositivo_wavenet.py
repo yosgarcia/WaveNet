@@ -1,12 +1,10 @@
-from c1_shared import *
-from c1_send import enviar_archivo_por_sonido, emitir_trama
-from c1_listen import escuchar_y_retornar_trama
+from c1_comunication import *
 
 #python3 -m venv nombre_del_entorno
 #source nombre_del_entorno/bin/activate
 #pip install scipy numpy sounddevice
 
-#python3 dispositivo_wavenet.py -a prueba.txt -b aa:bb:cc:dd:ee:ff -c 11:22:33:44:55:66 -d 2
+# python3 dispositivo_wavenet.py -a prueba.txt -b aa:bb:cc:dd:ee:ff -c 11:22:33:44:55:66 -d 2
 
 def main():
     parser = argparse.ArgumentParser(description="Parser de archivo y direcciones MAC")
@@ -28,8 +26,13 @@ def main():
         case "1":
             guardar_archivo_en_tramas_wav(ruta, args.mac_origen, args.mac_destino)
         case "2":
-            tramita = escuchar_y_retornar_trama()
-            imprimir_trama(tramita)
+            try:
+                tramita = escuchar_y_retornar_trama(3)
+                tramita.imprimir()
+
+            except:
+                print("No se escuho ninguna trama en el tiempo establecido.")
+
         case "3":
             tramas = obtener_tramas_desde_archivo(ruta, args.mac_origen, args.mac_destino)
             emitir_trama(tramas[0])
