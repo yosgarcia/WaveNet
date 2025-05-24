@@ -3,7 +3,7 @@ name = "wavenetcore"
 version = "0.1.0"
 description = "A core mesh network library"
 authors = [{ name = "Maximilian Latysh" }]
-dependencies = ["cryptography", "pytest"]
+dependencies = ["cryptography", "psutil", "pytest"]
 
 [build-system]
 requires = ["setuptools>=61.0"]

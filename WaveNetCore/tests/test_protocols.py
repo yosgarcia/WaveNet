@@ -31,7 +31,9 @@ def test_link_sending_and_receiving_packet_local():
 
 	time.sleep(0.5)
 
-	link = Link(str(recv_port), LocalProtocol())
+	dest = receiver.public()
+
+	link = Link(dest, LocalProtocol())
 	pkt = Packet(src=1, dest=2, mtype="msg", body="hello")
 	link.send(pkt)
 
@@ -43,7 +45,7 @@ def test_link_sending_and_receiving_packet_local():
 
 def test_link_sending_and_receiving_packet_ip():
 	time.sleep(0.5)
-	recv_ip = "127.0.0.1"
+	recv_ip = IPProtocol.get_interfaces()[0][1]
 	recv_port = 9100
 	receiver = IPProtocol(ip=recv_ip, port=recv_port)
 	received = []
@@ -52,11 +54,7 @@ def test_link_sending_and_receiving_packet_ip():
 
 	time.sleep(0.5)
 
-	data = {
-			"ip" : recv_ip,
-			"port" : recv_port
-			}
-	dest = json.dumps(data)
+	dest = receiver.public()
 
 	link = Link(dest, IPProtocol())
 	pkt = Packet(src=1, dest=2, mtype="msg", body="hello")

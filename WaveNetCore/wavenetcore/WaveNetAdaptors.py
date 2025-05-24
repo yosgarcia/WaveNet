@@ -1,19 +1,16 @@
-from wavenetcore.WaveNetMesh import *
-from wavenetcore.WaveNetCommunication import *
-from wavenetcore.WaveNetProtocols import *
+import wavenetcore.WaveNetMesh as mesh
+import wavenetcore.WaveNetProtocols as prot
 
-# Nada más crear instancia de, activate listen, y ya con esto basta
-# ping hace ping
-class WaveNetBasicMeshHub(WaveNetMeshHub):
+class WaveNetBasicMeshHub(mesh.MeshHub):
 	def __init__(self, protocols):
 		assert type(protocols) == list
 		assert len(protocols) > 0
-		for protocol in protocols: assert isinstance(protocol, Protocol)
+		for protocol in protocols: assert isinstance(protocol, prot.Protocol)
 		self.is_alive = False
 		super().__init__(protocols)
 
 	def my_id(self):
-		return 0;
+		return 0
 	
 	def run(self):
 		assert not self.is_alive
@@ -30,19 +27,13 @@ class WaveNetBasicMeshHub(WaveNetMeshHub):
 		assert type(ID) == int
 		return super().ping(ID)
 
-# Crear instancia de, activar listen, conectar con vecinos por medio de connect, unirse a la red con join y ya
-# Seguro para empleo con threads
-# send manda un mensaje al destinario
-# listen recibe de cualquiera -> retorna (src_id, mensaje)
-# recv recibe de un ID en particular -> retorna (src_id, mensaje)
-# my_id devuelve la identifiacion del nodo
-class WaveNetBasicMeshNode(WaveNetMeshNode):
-	def __init__(self, protocols):
+class WaveNetBasicMeshNode(mesh.MeshNode):
+	def __init__(self, protocols, ID=None):
 		assert type(protocols) == list
 		assert len(protocols) > 0
-		for protocol in protocols: assert isinstance(protocol, Protocol)
+		for protocol in protocols: assert isinstance(protocol, prot.Protocol)
 		self.is_alive = False
-		super().__init__(protocols)
+		super().__init__(protocols, ID=ID)
 
 	def ping(self, ID):
 		assert self.is_alive
@@ -50,12 +41,12 @@ class WaveNetBasicMeshNode(WaveNetMeshNode):
 		return super().ping(ID)
 
 	def my_id(self):
-		return super().node.info.ID;
+		return self.node.info.ID;
 	
 	def connect(self, ID, protocol, dest):
 		assert self.is_alive
 		assert type(ID) == int
-		assert isinstance(protocol, Protocol)
+		assert isinstance(protocol, prot.Protocol)
 		assert type(dest) == str
 		super().connect(ID, protocol, dest)
 
@@ -63,7 +54,7 @@ class WaveNetBasicMeshNode(WaveNetMeshNode):
 		assert self.is_alive
 		super().join()
 	
-	def send(self, dest, message):
+	def send_data(self, dest, message):
 		assert self.is_alive
 		assert type(dest) == int
 		assert type(message) == str

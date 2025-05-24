@@ -1,5 +1,6 @@
 from enum import Enum
 import json
+import psutil
 import socket
 from threading import Thread, Event
 from wavenetcore.WaveNetPacketeering import *
@@ -79,6 +80,7 @@ class LocalProtocol(Protocol):
 					pass
 
 	def as_public(self):
+		assert self.port is not None
 		return str(self.port)
 
 class IPProtocol(Protocol):
@@ -137,7 +139,24 @@ class IPProtocol(Protocol):
 					pass
 
 	def as_public(self):
-		return json.dumps({"ip" : self.ip, "port" : self.port})
+		assert self.ip is not None
+		assert self.port is not None
+		return IPProtocol.ip_to_json(self.ip, self.port)
+
+	def ip_to_json(ip, port):
+		assert type(ip) == str
+		assert type(port) == int
+		return json.dumps({"ip" : ip, "port" : port})
+
+	def get_interfaces():
+		results = []
+		for iface, addrs in psutil.net_if_addrs().items():
+			for addr in addrs:
+				if addr.family == socket.AF_INET and not addr.address.startswith("127."):
+					results.append((iface, addr.address))
+		return results
+
+
 
 def empty_protocol_from_str(name):
 	assert name in ProtocolType.__members__
