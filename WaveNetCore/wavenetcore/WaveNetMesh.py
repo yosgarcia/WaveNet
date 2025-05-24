@@ -46,14 +46,14 @@ class MeshHub(Node):
 		if dest in self.nodes: key = self.nodes[dest]
 		self.node.send(dest, mtype, message, public_key=key)
 	
-	def send(self, dest, mtype, message):
+	def sends(self, dest, mtype, message):
 		Thread(target=self.__send, args=(dest, mtype, message,), daemon=True).start()
 	
 	def ping(self, ID):
 		with self.mutex:
 			if (ID, "pong") not in self.awaits: self.awaits[(ID, "pong")] = PacketWaiter()
 			waiter = self.awaits[(ID, "pong")]
-		self.send(ID, "ping", "")
+		self.sends(ID, "ping", "")
 		packet = waiter.recv()
 		if packet.is_null(): return False
 		return packet.src == ID
@@ -74,7 +74,7 @@ class MeshHub(Node):
 		self.node.info.add_neighbor(link)
 
 	def process_ping(self, packet):
-		self.send(packet.src, "pong", "")
+		self.sends(packet.src, "pong", "")
 
 	def process_pong(self, packet):
 		if (packet.src, packet.mtype) in self.awaits:
@@ -95,7 +95,7 @@ class MeshHub(Node):
 		pem = str(self.nodes[ID])
 		ans = {"id" : ID, "pem" : pem}
 		message = json.dumps(ans)
-		self.send(packet.src, "answer", message)
+		self.sends(packet.src, "answer", message)
 	
 	def process_join(self, packet):
 		data = json.loads(packet.body)
@@ -178,7 +178,7 @@ class MeshNode(Node):
 		key = self.request(dest)
 		self.node.send(dest, mtype, message, public_key=key)
 	
-	def send(self, dest, mtype, message):
+	def sends(self, dest, mtype, message):
 		Thread(target=self.__send, args=(dest, mtype, message), daemon=True).start()
 	
 	def join(self):
@@ -198,13 +198,13 @@ class MeshNode(Node):
 			if (ID, "pong") not in self.awaits: self.awaits[(ID, "pong")] = PacketWaiter()
 			waiter = self.awaits[(ID, "pong")]
 		if self.hub_key is None: self.basic_send(ID, "ping", "")
-		else: self.send(ID, "ping", "")
+		else: self.sends(ID, "ping", "")
 		packet = waiter.recv()
 		if packet.is_null(): return False
 		return packet.src == ID
 
 	def send_data(self, dest, message):
-		self.send(dest, "data", message)
+		self.sends(dest, "data", message)
 	
 	def recv_data(self, ID=None, timeout=None):
 		with self.mutex:
@@ -240,7 +240,7 @@ class MeshNode(Node):
 		self.node.info.add_neighbor(link)
 
 	def process_ping(self, packet):
-		self.send(packet.src, "pong", "")
+		self.sends(packet.src, "pong", "")
 
 	def process_pong(self, packet):
 		if (packet.src, packet.mtype) in self.awaits:

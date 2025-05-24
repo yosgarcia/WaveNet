@@ -106,7 +106,7 @@ def test_recv_data_from_any(setup_mesh_3):
 	t = Thread(target=recv_thread)
 	t.start()
 	time.sleep(0.5)
-	sender.send_data(receiver.my_id(), msg)
+	sender.send(receiver.my_id(), msg)
 	t.join(timeout=2)
 
 	assert result.get("data") == msg
@@ -127,10 +127,10 @@ def test_recv_data_from_specific_id(setup_mesh_3):
 	t.start()
 	time.sleep(0.1)
 
-	other_sender.send_data(receiver.my_id(), "Shalam alakum")
+	other_sender.send(receiver.my_id(), "Shalam alakum")
 	time.sleep(0.1)
 
-	target_sender.send_data(receiver.my_id(), msg)
+	target_sender.send(receiver.my_id(), msg)
 	t.join(timeout=2)
 
 	assert result.get("data") == msg

@@ -54,7 +54,7 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 		assert self.is_alive
 		super().join()
 	
-	def send_data(self, dest, message):
+	def send(self, dest, message):
 		assert self.is_alive
 		assert type(dest) == int
 		assert type(message) == str
