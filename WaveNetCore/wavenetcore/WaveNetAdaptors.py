@@ -1,6 +1,6 @@
-from .WaveNetMesh import *
-from .WaveNetCommunication import *
-from .WaveNetProtocols import *
+from wavenetcore.WaveNetMesh import *
+from wavenetcore.WaveNetCommunication import *
+from wavenetcore.WaveNetProtocols import *
 
 # Nada más crear instancia de, activate listen, y ya con esto basta
 # ping hace ping
@@ -10,9 +10,12 @@ class WaveNetBasicMeshHub(WaveNetMeshHub):
 		assert len(protocols) > 0
 		for protocol in protocols: assert isinstance(protocol, Protocol)
 		self.is_alive = False
-		super().__init__(port)
+		super().__init__(protocols)
+
+	def my_id(self):
+		return 0;
 	
-	def listen(self):
+	def run(self):
 		assert not self.is_alive
 		self.is_alive = True
 		return super().listen()
@@ -77,7 +80,7 @@ class WaveNetBasicMeshNode(WaveNetMeshNode):
 		assert timeout is None or type(timeout) is float
 		return super().recv_data(ID=ID, timeout=timeout)
 	
-	def listen(self):
+	def run(self):
 		assert not self.is_alive
 		self.is_alive = True
 		return super().listen()

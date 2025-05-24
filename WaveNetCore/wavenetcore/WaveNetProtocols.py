@@ -137,7 +137,7 @@ class IPProtocol(Protocol):
 					pass
 
 	def as_public(self):
-		return str(self.port)
+		return json.dumps({"ip" : self.ip, "port" : self.port})
 
 def empty_protocol_from_str(name):
 	assert name in ProtocolType.__members__
