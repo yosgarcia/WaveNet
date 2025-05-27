@@ -12,8 +12,8 @@ import time
 
 # Audio
 SAMPLE_RATE = 44100           # Hz
-BYTE_DURATION = 0.1           # Segundos
-SILENCE_DURATION = 0.15       # Segundos
+BYTE_DURATION = 0.15          # Segundos
+SILENCE_DURATION = 0.3       # Segundos
 BASE_FREQ = 550               # Frecuencia para byte 0
 SILENCE_FREQ = 200
 FREQ_STEP = 70
@@ -29,11 +29,11 @@ TIPO_OK = 0x06
 # Protocolo
 VERSION = 1
 
-TIME_TO_SAY_OK = 20
-TIMES_TO_COMUNICATE_OK = 5
+TIME_TO_SAY_OK = 10
+TIMES_TO_COMUNICATE_OK = 3
 
-TIME_TO_SAY_128_BYTES = 32
-TIMES_TO_COMUNICATE_128_BYTES = 5
+TIME_TO_SAY_128_BYTES = 35
+TIMES_TO_COMUNICATE_128_BYTES = 3
 
 # Frecuencias especiales
 PING_FREQ = 18000
@@ -88,7 +88,7 @@ class Trama:
         self.bytes_trama = header + self.payload + self.checksum
 
     def get_bytes(self):
-        return bytes(self.trama)
+        return bytes(self.bytes_trama)
 
     def get_checksum_valido(self):
         header_y_payload = self.bytes_trama[:15 + self.length]
@@ -219,7 +219,7 @@ def escuchar_y_retornar_trama(timeout):
             break
 
         # Leer bloque de audio del tamaño de un byte
-        duracion_muestra = int(SAMPLE_RATE * (BYTE_DURATION-0.06))
+        duracion_muestra = int(SAMPLE_RATE * (BYTE_DURATION-0.08))
         audio = sd.rec(duracion_muestra, samplerate=SAMPLE_RATE, channels=1, dtype='float64')
         sd.wait()
 

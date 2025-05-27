@@ -4,14 +4,20 @@ from c1_comunication import *
 #source nombre_del_entorno/bin/activate
 #pip install scipy numpy sounddevice
 
-# python3 dispositivo_wavenet.py -a prueba.txt -b aa:bb:cc:dd:ee:ff -c 11:22:33:44:55:66 -d 2
+# python3 dispositivo_wavenet.py -a prueba.txt -b aa:bb:cc:dd:ee:ff -c 11:22:33:44:55:66 -d 3
+# Ver nombre para ver donde sale el audio   
+# for i, device in enumerate(sd.query_devices()):
+#        if device['max_output_channels'] > 0:
+#            print(f"{i}: {device['name']}")
+
+
+# python3 dispositivo_wavenet.py -a prueba.txt -b 11:22:33:44:55:66 -d 4
 
 def main():
     parser = argparse.ArgumentParser(description="Parser de archivo y direcciones MAC")
-    
     parser.add_argument('-a', '--archivo', required=True, help="Ruta al archivo (ej: archivo.txt)")
     parser.add_argument('-b', '--mac_origen', required=True, help="MAC Address de origen (ej: aa:bb:cc:dd:ee:ff)")
-    parser.add_argument('-c', '--mac_destino', required=True, help="MAC Address de destino (ej: 11:22:33:44:55:66)")
+    parser.add_argument('-c', '--mac_destino', required=False, help="MAC Address de destino (ej: 11:22:33:44:55:66)")
     parser.add_argument('-d', '--modo', required=True)
 
 
@@ -27,15 +33,21 @@ def main():
             guardar_archivo_en_tramas_wav(ruta, args.mac_origen, args.mac_destino)
         case "2":
             try:
-                tramita = escuchar_y_retornar_trama(3)
+                tramita = escuchar_y_retornar_trama(TIME_TO_SAY_128_BYTES)
                 tramita.imprimir()
-
+                #trama_ok = crear_trama_ok(tramita.mac_origen, tramita.mac_destino, tramita.checksum)
+                #guardar_trama_como_wav(trama_ok, "Trama_ok.wav")
             except:
                 print("No se escuho ninguna trama en el tiempo establecido.")
 
         case "3":
-            tramas = obtener_tramas_desde_archivo(ruta, args.mac_origen, args.mac_destino)
-            emitir_trama(tramas[0])
+            exito = enviar_archivo_por_sonido(ruta, args.mac_origen, args.mac_destino)
+            if (not exito): print("No se envio el archivo correctamente")
+        case "4":
+            exito = escuchar_archivo(args.mac_origen)
+            if (not exito): print("No se escucho el archivo correctamente")
+
+
 
     #enviar_ping(args.mac_origen)
 
