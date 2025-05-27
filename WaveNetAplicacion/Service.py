@@ -24,7 +24,7 @@ def receive_message() -> Tuple[int, Dict[str, Any]]:
 def send_and_wait_response(dest_id: int,
                            resource: str,
                            body: Any,
-                           timeout: float = 5.0,
+                           timeout: float = 50.0,
                            poll_interval: float = 0.1) -> Any:
     send_message(dest_id, "REQUEST", resource, body)
     start = time.time()
