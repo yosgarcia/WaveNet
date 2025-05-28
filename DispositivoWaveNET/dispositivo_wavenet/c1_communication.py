@@ -139,7 +139,7 @@ def enviar_archivo_por_sonido(nombre_archivo, mac_org_str, mac_dest_str):
     logging.info("Archivo enviado")
     return True
 
-def escuchar_string(my_mac_address_str, timeout=None):
+def escuchar_string(my_mac_address_str, timeout=None, init_timeout=None):
     """
     Función para recibir un string por medio de audio
 
@@ -150,6 +150,7 @@ def escuchar_string(my_mac_address_str, timeout=None):
 
     my_address_bytes = mac_str_to_bytes(my_mac_address_str)
     if timeout is None: timeout = TIME_TO_SAY_128_BYTES + 10
+    if init_timeout is None: init_timeout = 30
     sndr_mac = 0x0
     cant_tramas = -1
 
@@ -158,7 +159,7 @@ def escuchar_string(my_mac_address_str, timeout=None):
     t_arch_info = None
     for i in range(TIMES_TO_COMUNICATE_128_BYTES):
         try:
-            t_arch_info = escuchar_y_retornar_trama(timeout = timeout)
+            t_arch_info = escuchar_y_retornar_trama(timeout = init_timeout)
             t_arch_info.imprimir()
             if (t_arch_info.tipo == TIPO_TRAMA_ARCHIVO_INFO and
                 t_arch_info.mac_destino == my_address_bytes ): break

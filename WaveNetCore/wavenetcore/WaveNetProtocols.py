@@ -2,8 +2,9 @@ from enum import Enum
 import json
 import psutil
 import socket
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from wavenetcore.WaveNetPacketeering import *
+from dispositivo_wavenet.dispositivo_wavenet import DispositivoWaveNet as wn
 import logging
 
 class ProtocolType(Enum):
@@ -13,6 +14,7 @@ class ProtocolType(Enum):
 
 	LOCAL = 1
 	IP = 2
+	SOUND = 3
 
 class Protocol:
 	"""
@@ -269,6 +271,68 @@ class IPProtocol(Protocol):
 					results.append((iface, addr.address))
 		return results
 
+class SoundProtocol(Protocol):
+	"""
+	Clase que maneja el protocolo de capa 1 de sonido.
+	"""
+
+	protocol_type = ProtocolType.SOUND
+	MAC = None
+	mutex = Lock()
+
+	def __init__(self, mac=None):
+		"""
+		Constructor de la clase.
+
+		@param mac El MAC address a utilizar
+		"""
+		if mac is not None: SoundProtocol.MAC = mac
+		else: assert SoundProtocol.MAC is not None
+		assert type(SoundProtocol.MAC) == str
+		super().__init__(SoundProtocol.protocol_type, self.sender, self.listener, self.as_public)
+	
+	def sender(self, packet, dest):
+		"""
+		Manda un paquete.
+
+		@param packet El paquete
+		@param dest El MAC address del destino
+		"""
+
+		def temp():
+			with SoundProtocol.mutex:
+				w = wn(self.MAC, dest)
+				w.send(packet.form(), timeout=60*3)
+
+		return Thread(target=temp, args=(), daemon=True).start()
+	
+
+	def listener(self, func, switch):
+		"""
+		Escucha por conexión entrantes y recibe información.
+
+		@param func Funciona a utilizar para procesar los paquetes entrantes
+		@param switch El indicador de terminación para el thread
+		"""
+
+		while not switch.is_set():
+			try:
+				with SoundProtocol.mutex:
+					w = wn(self.MAC, "")
+					data = w.listen(timeout=60*3, init_timeout=20)
+				packet = reconstruct_packet(data)
+				func(packet)
+			except Exception as e:
+				logging.info(f"SoundProtocol listener died again : {str(e)}")
+
+	def as_public(self):
+		"""
+		Genera la versión pública del protocolo (cómo conectarse al host del protocolo externamente).
+
+		@return Un string que corresponde a su conexión pública.
+		"""
+
+		return SoundProtocol.MAC
 
 
 def empty_protocol_from_str(name):
@@ -282,6 +346,7 @@ def empty_protocol_from_str(name):
 	assert name in ProtocolType.__members__
 	if ProtocolType[name] == ProtocolType.LOCAL: return LocalProtocol()
 	if ProtocolType[name] == ProtocolType.IP: return IPProtocol()
+	if ProtocolType[name] == ProtocolType.SOUND: return SoundProtocol()
 	assert False
 
 class Link:
@@ -307,7 +372,7 @@ class Link:
 		@param packet El paquete a mandar
 		"""
 
-		self.protocol.send(packet, self.dest)
+		return self.protocol.send(packet, self.dest)
 
 	def __str__(self):
 		"""

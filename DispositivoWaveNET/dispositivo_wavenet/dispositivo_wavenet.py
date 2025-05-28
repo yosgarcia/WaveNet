@@ -39,14 +39,14 @@ class DispositivoWaveNet:
 		if not enviar_string_por_sonido(string, self.mac_origen, self.mac_destino, timeout=timeout):
 			raise Exception("Failed to send string through layer 1")
 
-	def listen(self, timeout=None):
+	def listen(self, timeout=None, init_timeout=None):
 		"""
 		Escucha un string a través de sonido.
 
 		@return: True si la escucha fue exitosa, False en caso contrario.
 		"""
 
-		ret = escuchar_string(self.mac_origen, timeout=timeout)
+		ret = escuchar_string(self.mac_origen, timeout=timeout, init_timeout=init_timeout)
 		if ret == False:
 			raise Exception("Failed to get string from layer 1")
 		return ret
