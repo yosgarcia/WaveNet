@@ -13,8 +13,8 @@ import logging
 
 # Audio
 SAMPLE_RATE = 44100           # Hz
-BYTE_DURATION = 0.26       # Segundos
-SILENCE_DURATION = 0.32       # Segundos
+BYTE_DURATION = 0.24       # Segundos
+SILENCE_DURATION = 0.30       # Segundos
 BASE_FREQ = 350               # Frecuencia para byte 0
 SILENCE_FREQ = 200
 FREQ_STEP = 50

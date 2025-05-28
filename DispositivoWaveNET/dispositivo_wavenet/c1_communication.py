@@ -291,6 +291,7 @@ def emitir_hasta_respuesta_ping(trama, my_origin_bytes, my_sender_bytes, timeout
         emitir_trama(trama)
         for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
             if escuchar_ping(3):
+                time.sleep(1)
                 return True
     return False
 
