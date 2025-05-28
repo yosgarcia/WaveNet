@@ -43,9 +43,10 @@ class Protocol:
 
 		@param packet El paquete a enviar
 		@param dest El destino de la información
+		@return Generalmente None pero en algunos casos puede ser un thread
 		"""
 
-		self.sender(packet, dest)
+		return self.sender(packet, dest)
 
 	def listen(self, func):
 		"""
@@ -372,6 +373,7 @@ class Link:
 		Manda un paquete a través del protocolo.
 
 		@param packet El paquete a mandar
+		@return Generalmente none pero en el caso de algunos protocolos puede ser un thread
 		"""
 
 		return self.protocol.send(packet, self.dest)
