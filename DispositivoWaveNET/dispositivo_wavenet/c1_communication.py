@@ -328,7 +328,7 @@ def emitir_hasta_respuesta(trama, my_origin_bytes, my_sender_bytes, timeout=None
     for i in range (TIMES_TO_COMUNICATE_128_BYTES):
         logging.info(f"Emitiendo trama por {i +1 } vez")
         emitir_trama(trama)
-	trama_recibida = None
+        trama_recibida = None
         for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
             try:
                 trama_recibida = escuchar_y_retornar_trama(timeout = timeout)
