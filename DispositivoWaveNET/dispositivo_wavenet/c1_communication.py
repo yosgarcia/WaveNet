@@ -163,8 +163,8 @@ def escuchar_string(my_mac_address_str, timeout=None):
             t_arch_info.imprimir()
             if (t_arch_info.tipo == TIPO_TRAMA_ARCHIVO_INFO and
                 t_arch_info.mac_destino == my_address_bytes ): break
-        except:
-            logging.warning("error")
+        except Exception as e:
+            logging.warning(f"error: {e}")
         t_arch_info = -1
 
     if (type(t_arch_info) is not Trama):
