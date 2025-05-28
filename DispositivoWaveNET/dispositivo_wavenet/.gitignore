@@ -11,6 +11,7 @@ env/
 # macOS
 .DS_Store
 
+
 # Linux
 *.swp
 
