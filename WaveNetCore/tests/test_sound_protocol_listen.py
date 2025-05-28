@@ -7,21 +7,7 @@ A = "0:0:0:0:0:0"
 B = "1:1:1:1:1:1"
 pkt = Packet(src=1, dest=2, mtype="msg", body="ahu, ahua")
 
-def __test_link_sending_packet_sound():
-	time.sleep(0.5)
-
-	sender = SoundProtocol(mac=A)
-
-	time.sleep(0.5)
-
-	link = Link(B, sender)
-	link.send(pkt).join()
-
-	time.sleep(0.5)
-
-	assert True
-
-def __test_link_receiving_packet_sound():
+def manual_test_link_receiving_packet_sound():
 	time.sleep(0.5)
 	receiver = SoundProtocol(mac=B)
 	received = []
@@ -34,3 +20,8 @@ def __test_link_receiving_packet_sound():
 
 	assert len(received) == 1
 	assert pkt == received[0]
+
+if __name__ == "__main__":
+	import logging
+	logging.getLogger().setLevel(logging.INFO)
+	manual_test_link_receiving_packet_sound()
