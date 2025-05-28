@@ -4,6 +4,6 @@ from dispositivo_wavenet.dispositivo_wavenet import DispositivoWaveNet as wn
 
 def listen():
 	w = wn("0:0:0:0:0:0", "1:1:1:1:1:1")
-	w.listen(timeout=30)
+	return w.listen(timeout=120)
 
 print(listen())

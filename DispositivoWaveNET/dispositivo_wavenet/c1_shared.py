@@ -12,12 +12,12 @@ import logging
 # ------------------------------------------------------------------------------------------------------------
 
 # Audio
-SAMPLE_RATE = 50000           # Hz
-BYTE_DURATION = 0.18       # Segundos
+SAMPLE_RATE = 44100           # Hz
+BYTE_DURATION = 0.18*3/2       # Segundos
 SILENCE_DURATION = 0.36       # Segundos
-BASE_FREQ = 600               # Frecuencia para byte 0
+BASE_FREQ = 350               # Frecuencia para byte 0
 SILENCE_FREQ = 200
-FREQ_STEP = 70
+FREQ_STEP = 50
 
 # silencio freq 20
 # frecuencia base 440
@@ -40,7 +40,7 @@ TIME_TO_SAY_128_BYTES = 113
 TIMES_TO_COMUNICATE_128_BYTES = 3
 
 # Frecuencias especiales
-PING_FREQ = 400
+PING_FREQ = 250
 FREQ_EOF = 300
 
 
@@ -283,15 +283,6 @@ def crear_trama_ok(bytes_mac_org, bytes_mac_dest, bytes_checksum_received):
 # Parte de soniditos
 # ------------------------------------------------------------------------------------------------------------
 
-def detectar_baja_amplitud(audio, mnrms=0.03, mnpk=0.3):
-    """
-    """
-    rms = np.sqrt(np.mean(audio ** 2))
-    pk = np.max(np.abs(audio))
-    return False
-
-    return rms < mnrms and pk < mnpk 
-
 def detectar_frecuencia(audio, sample_rate):
     """
     @brief Detecta la frecuencia dominante en una señal de audio.
@@ -329,13 +320,11 @@ def escuchar_y_retornar_trama(timeout):
             logging.info("Timeout alcanzado. Terminando escucha.")
             break
             
-        # Leer bloque de audio del tamaño de un byte
         duracion_muestra = int(SAMPLE_RATE * (BYTE_DURATION-0.08))
         audio = sd.rec(duracion_muestra, samplerate=SAMPLE_RATE, channels=1, dtype='float64')
         sd.wait()
 
         audio = audio.flatten()
-        logging.info(f"AUDIO: {audio}")
         freq = detectar_frecuencia(audio, SAMPLE_RATE)
         
         if (not heard_ping):
@@ -349,18 +338,17 @@ def escuchar_y_retornar_trama(timeout):
             logging.info("EOF detectado.")
             break
 
-
         byte = freq_to_byte(freq)
         if byte is not None:
             if (expect_silence):
+                logging.info(f"?------------?")
                 continue
-            if detectar_baja_amplitud(audio): continue
-            #print(f"Frecuencia detectada: {freq:.1f} Hz → Byte: {byte} | ASCII: {chr(byte) if 32 <= byte<= 126 else 'No printable character'}")
+            logging.info(f"BYTE <- {byte}")
             bytes_recibidos.append(byte)
             expect_silence = True
         else:
             expect_silence = False
-            #print(f"Frecuencia fuera de rango: {freq:.1f} Hz")
+            logging.info(f"--------------")
 
     logging.info(f"{bytes_recibidos}")
     trama = Trama(bytes_trama=bytes_recibidos)
@@ -389,8 +377,6 @@ def escuchar_ping(timeout):
         sd.wait()
 
         audio = audio.flatten()
-        if detectar_baja_amplitud(audio): continue
-        #logging.info(f"AUDIO: {audio}")
         freq = detectar_frecuencia(audio, SAMPLE_RATE)
         
         if (abs(freq - PING_FREQ) < 10):
@@ -403,7 +389,7 @@ def transmite_freq(freq, duration=BYTE_DURATION):
     """
     t = np.linspace(0, duration, int(SAMPLE_RATE * duration), False)
     tono = 0.5 * np.sin(2 * np.pi * freq * t)
-    tono = tono*1.5
+    tono = tono*1.95
     tono = np.clip(tono, -1.0, 1.0)
     sd.play(tono, samplerate=SAMPLE_RATE)
     sd.wait()
@@ -414,7 +400,7 @@ def transmitir_silencio(freq = SILENCE_FREQ, duration=SILENCE_DURATION):
     """
     t = np.linspace(0, duration, int(SAMPLE_RATE * duration), False)
     tono = 0.5 * np.sin(2 * np.pi * freq * t)
-    tono = tono*1.5
+    tono = tono*1.95
     tono = np.clip(tono, -1.0, 1.0)
     sd.play(tono, samplerate=SAMPLE_RATE)
     sd.wait()
@@ -423,17 +409,16 @@ def ejecutar_ping():
     """
     Ejecuta un ping
     """
-    time.sleep(1)
-    transmite_freq(PING_FREQ)
-    transmitir_silencio()
-    time.sleep(0.1)
+    time.sleep(2)
+    transmite_freq(PING_FREQ, duration=BYTE_DURATION*2)
+    #transmitir_silencio()
 
 def emitir_trama(trama):
     """
     Transmite una trama byte por byte como audio.
     Para iniciar la transmicion, empieza con un ping, seguido de un silencio
     """
-    transmite_freq(PING_FREQ)
+    transmite_freq(PING_FREQ, duration=BYTE_DURATION*2)
     transmitir_silencio()
 
     for byte in trama.bytes_trama:
@@ -442,7 +427,8 @@ def emitir_trama(trama):
         transmite_freq(freq)
         transmitir_silencio()
     
-    transmite_freq(FREQ_EOF)  # Frecuencia especial para EOF
+    transmite_freq(FREQ_EOF, duration=BYTE_DURATION*2)
+    #transmitir_silencio()
     logging.info("Trama transmitida.")
         
 # ------------------------------------------------------------------------------------------------------------

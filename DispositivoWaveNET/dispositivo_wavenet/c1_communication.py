@@ -180,26 +180,17 @@ def escuchar_string(my_mac_address_str, timeout=None):
         logging.warning("Error al decodificar el payload:", e)
         return False
 
-    # Enviar OK después de verificar y decodificar
-    #trama_ok_1 = crear_trama_ok(
-	#bytes_mac_org = my_address_bytes,
-	#bytes_mac_dest = t_arch_info.mac_origen,
-	#bytes_checksum_received = t_arch_info.checksum
-    #)
-    
     string_final = b""  # Usamos bytes primero
 
-
-    #for _ in range (TIMES_TO_COMUNICATE_OK):
-    #    emitir_trama(trama_ok_1)
-    time.sleep(0.5)
     ejecutar_ping()
-    time.sleep(0.1)
+
+    logging.info("Recibiendo string.....")
 
     sndr_mac = t_arch_info.mac_origen
 
     try:
         for i in range(cant_tramas):
+            logging.info(f"Trama {i + 1}/{cant_tramas}")
             trama = None
             for _ in range(TIMES_TO_COMUNICATE_128_BYTES):
                 try:
@@ -208,7 +199,8 @@ def escuchar_string(my_mac_address_str, timeout=None):
                     trama.imprimir()
                     if verificar_datos_esperados(trama, tipo_esperado, sndr_mac, my_address_bytes):
                         break
-                except:
+                except Exception as e:
+                    logging.warning(f"Error al recibir trama: {str(e)}")
                     continue
 
             if trama is None:
@@ -223,29 +215,15 @@ def escuchar_string(my_mac_address_str, timeout=None):
 
             string_final += trama.payload
 
-	    #trama_ok = crear_trama_ok(
-			    #bytes_mac_org=my_address_bytes,
-		#bytes_mac_dest=trama.mac_origen,
-		#bytes_checksum_received=trama.checksum
-		#)
-
-            time.sleep(0.5)
+            time.sleep(1)
             ejecutar_ping()
-            time.sleep(0.1)
-	    #if (escuchar_ping(5)): break
-
-            """
-            for _ in range(TIMES_TO_COMUNICATE_OK):
-                emitir_trama(trama_ok)
-                if (escuchar_ping(5)): break
-            """
 
     except Exception as e:
         logging.warning(f"Error al recibir el string: {e}")
         return False
 
     logging.info("Contenido recibido (en bytes):")
-    logging.info(f"{string_final.hex()}")  # cuidado: puede contener bytes no imprimibles
+    logging.info(f"{string_final}")  # cuidado: puede contener bytes no imprimibles
 
     return string_final.decode()
 
@@ -285,10 +263,9 @@ def enviar_string_por_sonido(string, mac_org_str, mac_dest_str, timeout=None):
         if (not trama_recibida):
             logging.warning(f"No se comunico correctamente la trama {i+1}")
             return False
-        time.sleep(0.5)
         #for _ in range(6):#transmite_freq(PING_FREQ)
-        transmite_freq(PING_FREQ)
-        time.sleep(1)
+        time.sleep(0.5)
+        ejecutar_ping()
 
     logging.info("String enviado")
     return True
@@ -311,7 +288,7 @@ def emitir_hasta_respuesta_ping(trama, my_origin_bytes, my_sender_bytes, timeout
         emitir_trama(trama)
         for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
             if escuchar_ping(timeout):
-                    time.sleep(0.2)
+                    time.sleep(1)
                     return True
     return False
 
