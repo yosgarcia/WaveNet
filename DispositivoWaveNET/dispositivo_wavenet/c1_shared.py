@@ -354,7 +354,6 @@ def escuchar_y_retornar_trama(timeout):
     trama = Trama(bytes_trama=bytes_recibidos)
     return trama
 
-
 def escuchar_ping(timeout):
     """
     Escucha un sonido de ping durante un tiempo determinado.
@@ -401,6 +400,13 @@ def transmitir_silencio(freq = SILENCE_FREQ, duration=SILENCE_DURATION):
     tono = 0.5 * np.sin(2 * np.pi * freq * t)
     sd.play(tono, samplerate=SAMPLE_RATE)
     sd.wait()
+
+def ejecutar_ping():
+    """
+    Ejecuta un ping
+    """
+    transmite_freq(PING_FREQ)
+    transmitir_silencio()
 
 def emitir_trama(trama):
     """

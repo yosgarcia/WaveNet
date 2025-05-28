@@ -1,5 +1,5 @@
 import logging
-logging.getLogget().setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
 from dispositivo_wavenet.dispositivo_wavenet import DispositivoWaveNet as wn
 
 def send():

@@ -181,17 +181,20 @@ def escuchar_string(my_mac_address_str, timeout=None):
         return False
 
     # Enviar OK después de verificar y decodificar
-    trama_ok_1 = crear_trama_ok(
-        bytes_mac_org = my_address_bytes,
-        bytes_mac_dest = t_arch_info.mac_origen,
-        bytes_checksum_received = t_arch_info.checksum
-    )
+    #trama_ok_1 = crear_trama_ok(
+	#bytes_mac_org = my_address_bytes,
+	#bytes_mac_dest = t_arch_info.mac_origen,
+	#bytes_checksum_received = t_arch_info.checksum
+    #)
     
     string_final = b""  # Usamos bytes primero
 
 
-    for _ in range (TIMES_TO_COMUNICATE_OK):
-        emitir_trama(trama_ok_1)
+    #for _ in range (TIMES_TO_COMUNICATE_OK):
+    #    emitir_trama(trama_ok_1)
+    time.sleep(0.1)
+    ejecutar_ping()
+    time.sleep(0.1)
 
     sndr_mac = t_arch_info.mac_origen
 
@@ -220,15 +223,21 @@ def escuchar_string(my_mac_address_str, timeout=None):
 
             string_final += trama.payload
 
-            trama_ok = crear_trama_ok(
-                bytes_mac_org=my_address_bytes,
-                bytes_mac_dest=trama.mac_origen,
-                bytes_checksum_received=trama.checksum
-            )
+	    #trama_ok = crear_trama_ok(
+			    #bytes_mac_org=my_address_bytes,
+		#bytes_mac_dest=trama.mac_origen,
+		#bytes_checksum_received=trama.checksum
+		#)
 
+            time.sleep(0.1)
+            ejecutar_ping()
+            if (escuchar_ping(5)): break
+
+            """
             for _ in range(TIMES_TO_COMUNICATE_OK):
                 emitir_trama(trama_ok)
                 if (escuchar_ping(5)): break
+            """
 
     except Exception as e:
         logging.warning(f"Error al recibir el string: {e}")
@@ -259,7 +268,7 @@ def enviar_string_por_sonido(string, mac_org_str, mac_dest_str, timeout=None):
     logging.info(f"Enviando string...")
 
     trama_inicial =  crear_trama_archivo_info(my_origin, my_sender, len(tramas), "str")
-    escuchado = emitir_hasta_respuesta(trama_inicial, my_origin, my_sender, timeout=timeout)
+    escuchado = emitir_hasta_respuesta_ping(trama_inicial, my_origin, my_sender, timeout=timeout)
 
     if (not escuchado):
         logging.warning("No se logro comunicar la informacion inicial del string")
@@ -271,7 +280,7 @@ def enviar_string_por_sonido(string, mac_org_str, mac_dest_str, timeout=None):
         if (i == len(tramas) -1):
             trama.tipo = TIPO_TRAMA_FINAL_ARCHIVO
             trama._build()
-        trama_recibida = emitir_hasta_respuesta(trama, my_origin, my_sender, timeout=timeout)
+        trama_recibida = emitir_hasta_respuesta_ping(trama, my_origin, my_sender, timeout=timeout)
         if (not trama_recibida):
             logging.warning(f"No se comunico correctamente la trama {i+1}")
             return False
@@ -283,6 +292,25 @@ def enviar_string_por_sonido(string, mac_org_str, mac_dest_str, timeout=None):
     logging.info("String enviado")
     return True
 
+
+def emitir_hasta_respuesta_ping(trama, my_origin_bytes, my_sender_bytes, timeout=None):
+    """"
+    Función para emitir una trama y recibir un ping como confirmación
+    
+    @param trama Mi trama a ser emitada
+    @param my_origin_bytes MAC address del origen del mensaje
+    @param my_sender_bytes MAC address del destinatario del mensaje
+
+    @return True si la trama es emitida y escuchada correctamente, False si no
+    """
+
+    if timeout is None: timeout = TIME_TO_SAY_128_BYTES + 10
+    for i in range (TIMES_TO_COMUNICATE_128_BYTES):
+        logging.info(f"Emitiendo trama por {i +1 } vez")
+        emitir_trama(trama)
+        for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
+            if escuchar_ping(timeout): return True
+    return False
 
 def emitir_hasta_respuesta(trama, my_origin_bytes, my_sender_bytes, timeout=None):
     """"
@@ -300,7 +328,7 @@ def emitir_hasta_respuesta(trama, my_origin_bytes, my_sender_bytes, timeout=None
     for i in range (TIMES_TO_COMUNICATE_128_BYTES):
         logging.info(f"Emitiendo trama por {i +1 } vez")
         emitir_trama(trama)
-        trama_recibida = None
+	trama_recibida = None
         for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
             try:
                 trama_recibida = escuchar_y_retornar_trama(timeout = timeout)
