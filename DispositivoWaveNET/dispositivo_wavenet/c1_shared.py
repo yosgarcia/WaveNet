@@ -21,6 +21,7 @@ FREQ_STEP = 70
 # silencio freq 20
 # frecuencia base 440
 
+
 # Tipos de tramas
 TIPO_PING = 0x01
 TIPO_TRAMA_ARCHIVO_INFO = 0x02
