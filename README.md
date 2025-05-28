@@ -1,4 +1,11 @@
 # WaveNet
+
+## WaveNetCore
+Para instalar WaveNetCore, ejecutar (en esta carpeta):
+```
+pip install -e WaveNetCore
+```
+## DispositivoWaveNet
 Trama
 version - 1 byte
 mac origen - 6 bytes
@@ -21,4 +28,3 @@ eof - 1 byte
 |27-05-2025|Creación de módulo para el uso de Dispositivo WaveNet|
 |27-05-2025|Envío de string por medio de audio|
 
-=======
