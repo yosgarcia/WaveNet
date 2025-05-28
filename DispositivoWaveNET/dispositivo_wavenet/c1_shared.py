@@ -349,6 +349,28 @@ def obtener_tramas_desde_archivo(file_path, mac_origen_str, mac_destino_str):
 
     return lista_tramas
 
+def obtener_tramas_desde_string(string, mac_origen_str, mac_destino_str):
+    """
+    Lee un string y lo divide en tramas de acuerdo al formato:
+    [versión][MAC_origen][MAC_destino][tipo][longitud][payload][checksum]
+    Retorna una lista de tramas (listas de bytes).
+    """
+    lista_tramas = []
+    bytes_mac_org = mac_str_to_bytes(mac_origen_str)
+    bytes_mac_dest = mac_str_to_bytes(mac_destino_str)
+    tipo = TIPO_TRAMA_ARCHIVO
+
+    # Asegúrate de que el string sea bytes (por si acaso)
+    if isinstance(string, str):
+        string = string.encode('utf-8')
+
+    for i in range(0, len(string), 107):
+        bloque = string[i:i+107]
+        trama = crear_trama(VERSION, bytes_mac_org, bytes_mac_dest, tipo, bloque)
+        lista_tramas.append(trama)
+
+    return lista_tramas
+
 def guardar_archivo_en_tramas_wav(nombre_archivo, mac_org_str, mac_dest_str):
     """
     Guarda una lista de tramas como archivos WAV individuales,

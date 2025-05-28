@@ -86,6 +86,12 @@ def main():
         case "4":
             exito = escuchar_archivo(args.mac_origen)
             if (not exito): print("No se escucho el archivo correctamente")
+        case "5":
+            exito = enviar_string_por_sonido(ruta, args.mac_origen, args.mac_destino)
+            if (not exito): print("No se envio el archivo correctamente")
+        case "6":
+            exito = escuchar_string(args.mac_origen)
+            if (not exito): print("No se escucho el archivo correctamente")
 
 
 
