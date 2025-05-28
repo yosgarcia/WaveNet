@@ -8,7 +8,6 @@ longitud payload - 0-107 byte
 checksum - 4 byte
 eof - 1 byte
 
-----
 #### Bitacora espacial
 
 |Fecha | actividad |
@@ -22,4 +21,4 @@ eof - 1 byte
 |27-05-2025|Creación de módulo para el uso de Dispositivo WaveNet|
 |27-05-2025|Envío de string por medio de audio|
 
-----
+=======
