@@ -12,7 +12,47 @@ from c1_comunication import *
 
 
 # python3 dispositivo_wavenet.py -a prueba.txt -b 11:22:33:44:55:66 -d 4
+'''
+class DispositivoWaveNET:
+    def __init__(self, mac_origen, mac_destino=None):
+        self.mac_origen = mac_origen
+        self.mac_destino = mac_destino
+    
+    def enviar_archivo(self, ruta_archivo):
+        """
+        Envía un archivo a través de sonido.
+        :param ruta_archivo: Ruta del archivo a enviar.
+        :return: True si el envío fue exitoso, False en caso contrario.
+        """
+        if not os.path.exists(ruta_archivo):
+            raise FileNotFoundError(f"El archivo {ruta_archivo} no existe.")
+        return enviar_archivo_por_sonido(ruta_archivo, self.mac_origen, self.mac_destino)
+    
+    def escuchar_archivo(self):
+        """
+        Escucha un archivo a través de sonido.
+        :return: True si la escucha fue exitosa, False en caso contrario.
+        """
+        return escuchar_archivo(self.mac_origen)
 
+    def guardar_archivo_en_tramas_wav(self, ruta_archivo):
+        guardar_archivo_en_tramas_wav(ruta_archivo, self.mac_origen, self.mac_destino)
+
+
+    def escuchar_y_obtener_trama(self, tiempo_espera=TIME_TO_SAY_128_BYTES):
+        """
+        Escucha y retorna una trama.
+        :param tiempo_espera: Tiempo máximo para esperar la trama.
+        :return: Trama recibida.
+        """
+        try:
+            trama = escuchar_y_retornar_trama(tiempo_espera)
+            return trama
+        except Exception as e:
+            print(f"No se escuchó ninguna trama: {e}")
+            return None
+
+'''
 def main():
     parser = argparse.ArgumentParser(description="Parser de archivo y direcciones MAC")
     parser.add_argument('-a', '--archivo', required=True, help="Ruta al archivo (ej: archivo.txt)")
