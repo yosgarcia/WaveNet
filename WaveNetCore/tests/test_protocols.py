@@ -4,10 +4,12 @@ from wavenetcore.WaveNetProtocols import *
 from wavenetcore.WaveNetPacketeering import Packet
 
 def test_empty_protocol_from_str_matches_enum():
+	SoundProtocol.MAC = ""
 	for name in ProtocolType.__members__:
 		proto = empty_protocol_from_str(name)
 		assert isinstance(proto, Protocol)
 		assert proto.protocol_type == ProtocolType[name]
+	SoundProtocol.MAC = None
 
 def test_link_str_eq_hash():
 	protocol = LocalProtocol()
