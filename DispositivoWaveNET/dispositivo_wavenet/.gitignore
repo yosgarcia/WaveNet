@@ -7,7 +7,7 @@ __pycache__/
 venv/
 env/
 .venv/
-.nombre_del_entorno/
+nombre_del_entorno/
 # macOS
 .DS_Store
 
