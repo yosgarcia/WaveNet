@@ -1,4 +1,4 @@
-from dispositivo_wavenet.c1_comunication import *
+from dispositivo_wavenet.c1_communication import *
 
 #python3 -m venv nombre_del_entorno
 #source nombre_del_entorno/bin/activate
@@ -14,28 +14,43 @@ from dispositivo_wavenet.c1_comunication import *
 # python3 dispositivo_wavenet.py -a prueba.txt -b aa:bb:cc:dd:ee:ff -c 11:22:33:44:55:66 -d 5
 # python3 dispositivo_wavenet.py -a prueba.txt -b 11:22:33:44:55:66 -d 6
 
+class DispositivoWaveNet:
+	"""
+	Clase que maneja el dispositivo WaveNet en capa 1
+	"""
 
-class DispositivoWaveNET:
-    def __init__(self, mac_origen, mac_destino=None):
-        self.mac_origen = mac_origen
-        self.mac_destino = mac_destino
-    
-    def enviar_string(self, string):
-        """
-        Envía un string a través de sonido.
-        @param string: Mensaje en string a enviar.
-        @return: True si el envío fue exitoso, False en caso contrario.
-        """
-        return enviar_string_por_sonido(string, self.mac_origen, self.mac_destino)
-    
-    def escuchar_string(self):
-        """
-        Escucha un string a través de sonido.
-        @return: True si la escucha fue exitosa, False en caso contrario.
-        """
-        return escuchar_string(self.mac_origen)
+	def __init__(self, mac_origen, mac_destino=None):
+		"""
+		Constructor del DispositivoWaveNet.
 
-'''
+		@param mac_origen El mac_origen
+		@param mac_destino El mac_destino
+		"""
+		self.mac_origen = mac_origen
+		self.mac_destino = mac_destino
+
+	def send(self, string, timeout=None):
+		"""
+		Envía un string a través de sonido.
+
+		@param string: Mensaje en string a enviar.
+		"""
+
+		if not enviar_string_por_sonido(string, self.mac_origen, self.mac_destino, timeout=timeout):
+			raise Exception("Failed to send string through layer 1")
+
+	def listen(self, timeout=None):
+		"""
+		Escucha un string a través de sonido.
+
+		@return: True si la escucha fue exitosa, False en caso contrario.
+		"""
+
+		ret = escuchar_string(self.mac_origen, timeout=timeout)
+		if ret == False:
+			raise Exception("Failed to get string from layer 1")
+		return ret
+
 def main():
     parser = argparse.ArgumentParser(description="Parser de archivo y direcciones MAC")
     parser.add_argument('-a', '--archivo', required=True, help="Ruta al archivo (ej: archivo.txt)")
@@ -75,17 +90,12 @@ def main():
         case "6":
             exito = escuchar_string(args.mac_origen)
             if (not exito): print("No se escucho el archivo correctamente")
-'''
-'''
 
     #enviar_ping(args.mac_origen)
 
     #send_file_as_sound(ruta, args.mac_origen, args.mac_destino)
 
     #guardar_archivo_en_tramas_wav(ruta, args.mac_origen, args.mac_destino)
-'''
 
-'''
 if __name__ == '__main__':
     main()
-'''

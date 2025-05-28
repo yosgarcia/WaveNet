@@ -5,6 +5,7 @@ import sounddevice as sd
 import argparse
 import zlib
 import time
+import logging
 
 # ------------------------------------------------------------------------------------------------------------
 # Parte de parametros globales
@@ -130,16 +131,16 @@ class Trama:
         def mac_to_str(mac_bytes):
             return ':'.join(f'{b:02x}' for b in mac_bytes)
 
-        print("----- TRAMA -----")
-        print(f"Versión     : {self.version}")
-        print(f"MAC Origen  : {mac_to_str(self.mac_origen)}")
-        print(f"MAC Destino : {mac_to_str(self.mac_destino)}")
-        print(f"Tipo        : {self.tipo}")
-        print(f"Longitud    : {self.length}")
-        print(f"Payload     : {self.payload}")
-        print(f"Checksum    : {self.checksum.hex()}")
-        print(f"Checksum válido: {self.get_checksum_valido()}")
-        print("-----------------")
+        logging.info("----- TRAMA -----")
+        logging.info(f"Versión     : {self.version}")
+        logging.info(f"MAC Origen  : {mac_to_str(self.mac_origen)}")
+        logging.info(f"MAC Destino : {mac_to_str(self.mac_destino)}")
+        logging.info(f"Tipo        : {self.tipo}")
+        logging.info(f"Longitud    : {self.length}")
+        logging.info(f"Payload     : {self.payload}")
+        logging.info(f"Checksum    : {self.checksum.hex()}")
+        logging.info(f"Checksum válido: {self.get_checksum_valido()}")
+        logging.info("-----------------")
 
 
 def byte_to_freq(byte):
@@ -306,7 +307,7 @@ def escuchar_y_retornar_trama(timeout):
 
     """
     bytes_recibidos = []
-    print("Escuchando... (esperando datos hasta EOF 7000 Hz)")
+    logging.info("Escuchando... (esperando datos hasta EOF 7000 Hz)")
 
     expect_silence = True
     heard_ping = False
@@ -316,7 +317,7 @@ def escuchar_y_retornar_trama(timeout):
 
         # Verificar si se superó el timeout
         if (time.time() - start_time > timeout):
-            print("Timeout alcanzado. Terminando escucha.")
+            logging.info("Timeout alcanzado. Terminando escucha.")
             break
             
         # Leer bloque de audio del tamaño de un byte
@@ -330,12 +331,12 @@ def escuchar_y_retornar_trama(timeout):
         if (not heard_ping):
             if (abs(freq - PING_FREQ) < 10):
                 heard_ping = True
-                print("Escuche el ping")
+                logging.info("Escuche el ping")
                 start_time = time.time() # Reset start time
             continue
 
         if abs(freq - FREQ_EOF) < 10:  # Frecuencia EOF detectada
-            print("EOF detectado.")
+            logging.info("EOF detectado.")
             break
 
         byte = freq_to_byte(freq)
@@ -349,7 +350,7 @@ def escuchar_y_retornar_trama(timeout):
             expect_silence = False
             #print(f"Frecuencia fuera de rango: {freq:.1f} Hz")
 
-    print(bytes_recibidos)
+    logging.info(f"{bytes_recibidos}")
     trama = Trama(bytes_trama=bytes_recibidos)
     return trama
 
@@ -360,7 +361,7 @@ def escuchar_ping(timeout):
     @return False si no se escucha un ping, True si sí se escucha
     """
     bytes_recibidos = []
-    print("Escuchando ping... (esperando datos hasta EOF 7000 Hz)")
+    logging.info("Escuchando ping... (esperando datos hasta EOF 7000 Hz)")
 
     heard_ping = False
     start_time = time.time()
@@ -368,7 +369,7 @@ def escuchar_ping(timeout):
     while True:
         # Verificar si se superó el timeout
         if time.time() - start_time > timeout:
-            print("Timeout alcanzado. Terminando escucha.")
+            logging.info("Timeout alcanzado. Terminando escucha.")
             return False
 
         # Leer bloque de audio del tamaño de un byte
@@ -380,10 +381,8 @@ def escuchar_ping(timeout):
         freq = detectar_frecuencia(audio, SAMPLE_RATE)
         
         if (abs(freq - PING_FREQ) < 10):
-            print("Escuche el ping")
+            logging.info("Escuche el ping")
             return True
-
-
 
 def transmite_freq(freq, duration=BYTE_DURATION):
     """
@@ -413,12 +412,12 @@ def emitir_trama(trama):
 
     for byte in trama.bytes_trama:
         freq = byte_to_freq(byte)
-        print(f"Enviando byte {byte} → {freq:.1f} Hz")
+        logging.info(f"Enviando byte {byte} -> {freq:.1f} Hz")
         transmite_freq(freq)
         transmitir_silencio()
     
     transmite_freq(FREQ_EOF)  # Frecuencia especial para EOF
-    print("Trama transmitida.")
+    logging.info("Trama transmitida.")
         
 # ------------------------------------------------------------------------------------------------------------
 # Parte de la clase Pruebas
@@ -455,7 +454,7 @@ def guardar_trama_como_wav(trama, nombre_archivo):
 
     write(nombre_archivo, SAMPLE_RATE, audio_int16)
     trama.imprimir()
-    print(f"Trama guardada como archivo WAV: {nombre_archivo}")
+    logging.info(f"Trama guardada como archivo WAV: {nombre_archivo}")
 
 def obtener_tramas_desde_archivo(file_path, mac_origen_str, mac_destino_str):
     """
@@ -490,8 +489,7 @@ def obtener_tramas_desde_string(string, mac_origen_str, mac_destino_str):
     tipo = TIPO_TRAMA_ARCHIVO
 
     # Asegúrate de que el string sea bytes (por si acaso)
-    if isinstance(string, str):
-        string = string.encode('utf-8')
+    if isinstance(string, str): string = string.encode()
 
     for i in range(0, len(string), 107):
         bloque = string[i:i+107]
