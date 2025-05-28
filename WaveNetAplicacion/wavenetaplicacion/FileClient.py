@@ -105,5 +105,6 @@ def main():
     except Exception as e:
         print(f"[FileClient][Error] al recibir fichero: {e}")
 
+# python3 FileClient.py --hub-id <> --filename prueba.txt --out-dir ./descargas --port 8003
 if __name__ == "__main__":
     main()

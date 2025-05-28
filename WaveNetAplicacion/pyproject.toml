@@ -1,0 +1,13 @@
+[project]
+name = "wavenetaplicacion"
+version = "0.1.0"
+description = "Library for Layer 4 functionality in a wevenetaplicacion"
+authors = [{ name = "Jesus Cordero" }]
+dependencies = ["pydle", "pytest"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
