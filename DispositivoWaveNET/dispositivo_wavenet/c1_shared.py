@@ -40,8 +40,8 @@ TIME_TO_SAY_128_BYTES = 113
 TIMES_TO_COMUNICATE_128_BYTES = 3
 
 # Frecuencias especiales
-PING_FREQ = 18000
-FREQ_EOF = 16000
+PING_FREQ = 100
+FREQ_EOF = 150
 
 
 # ------------------------------------------------------------------------------------------------------------

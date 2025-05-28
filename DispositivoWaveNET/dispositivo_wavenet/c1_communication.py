@@ -192,7 +192,7 @@ def escuchar_string(my_mac_address_str, timeout=None):
 
     #for _ in range (TIMES_TO_COMUNICATE_OK):
     #    emitir_trama(trama_ok_1)
-    time.sleep(0.1)
+    time.sleep(0.2)
     ejecutar_ping()
     time.sleep(0.1)
 
