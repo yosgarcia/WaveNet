@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: dispositivo_wavenet
+Version: 0.1.0
+Summary: A file transmition with sound library
+Author: Yosward Garcia, Santiago Ramos
+Requires-Dist: numpy
+Requires-Dist: scipy
+Requires-Dist: sounddevice

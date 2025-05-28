@@ -1,0 +1,10 @@
+pyproject.toml
+dispositivo_wavenet/__init__.py
+dispositivo_wavenet/c1_comunication.py
+dispositivo_wavenet/c1_shared.py
+dispositivo_wavenet/dispositivo_wavenet.py
+dispositivo_wavenet.egg-info/PKG-INFO
+dispositivo_wavenet.egg-info/SOURCES.txt
+dispositivo_wavenet.egg-info/dependency_links.txt
+dispositivo_wavenet.egg-info/requires.txt
+dispositivo_wavenet.egg-info/top_level.txt
