@@ -9,7 +9,7 @@ from threading import Thread, Lock, Condition
 import logging
 
 class PacketWaiter:
-	timeout = 5.0
+	timeout = 20.0
 
 	def __init__(self):
 		self.condition = Condition()
@@ -33,17 +33,17 @@ class PacketWaiter:
 		return False
 
 class MeshHub(Node):
-	def __init__(self, protocols):
+	def __init__(self, protocols, encrypt=True):
 		self.private_key = PrivateKey()
 		info = NodeInfo(0, self.private_key)
 		self.node = Node(info, protocols, self.delegate)
 		self.nodes = {0: self.private_key.public_key()}
+		self.encrypt = encrypt
 		self.awaits = dict()
 		self.mutex = Lock()
 	
 	def __send(self, dest, mtype, message):
-		key = None
-		if dest in self.nodes: key = self.nodes[dest]
+		key = self.nodes[dest] if dest in self.nodes and self.encrypt else None
 		self.node.send(dest, mtype, message, public_key=key)
 	
 	def sends(self, dest, mtype, message):
@@ -135,11 +135,12 @@ class MeshHub(Node):
 		self.node.kill()
 
 class MeshNode(Node):
-	def __init__(self, protocols, ID=None):
+	def __init__(self, protocols, ID=None, encrypt=True):
 		self.private_key = PrivateKey()
 		if ID is None: ID = randint(1, (1 << 64) - 1)
 		info = NodeInfo(ID, self.private_key)
 		self.node = Node(info, protocols, self.delegate)
+		self.encrypt = encrypt
 		self.awaits = dict()
 		self.mutex = Lock()
 		self.hub_key = None
@@ -152,7 +153,7 @@ class MeshNode(Node):
 	
 	def request(self, ID):
 		with self.mutex:
-			key = self.hub_key
+			key = self.hub_key if self.encrypt else None
 			if (ID, "answer") not in self.awaits: self.awaits[(ID, "answer")] = PacketWaiter()
 			waiter = self.awaits[(ID, "answer")]
 		message = json.dumps({"id" : ID})
@@ -175,11 +176,11 @@ class MeshNode(Node):
 	
 	def __send(self, dest, mtype, message):
 		if self.hub_key is None: raise Exception("Node is not yet joined")
-		key = self.request(dest)
+		key = self.request(dest) if self.encrypt else None
 		self.node.send(dest, mtype, message, public_key=key)
 	
 	def sends(self, dest, mtype, message):
-		Thread(target=self.__send, args=(dest, mtype, message), daemon=True).start()
+		Thread(target=self.__send, args=(dest, mtype, message,), daemon=True).start()
 	
 	def join(self):
 		with self.mutex:

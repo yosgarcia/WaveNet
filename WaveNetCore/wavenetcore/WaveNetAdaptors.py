@@ -2,12 +2,13 @@ import wavenetcore.WaveNetMesh as mesh
 import wavenetcore.WaveNetProtocols as prot
 
 class WaveNetBasicMeshHub(mesh.MeshHub):
-	def __init__(self, protocols):
+	def __init__(self, protocols, encrypt=True):
 		assert type(protocols) == list
 		assert len(protocols) > 0
 		for protocol in protocols: assert isinstance(protocol, prot.Protocol)
+		assert type(encrypt) == bool
 		self.is_alive = False
-		super().__init__(protocols)
+		super().__init__(protocols, encrypt=encrypt)
 
 	def my_id(self):
 		return 0
@@ -28,12 +29,14 @@ class WaveNetBasicMeshHub(mesh.MeshHub):
 		return super().ping(ID)
 
 class WaveNetBasicMeshNode(mesh.MeshNode):
-	def __init__(self, protocols, ID=None):
+	def __init__(self, protocols, ID=None, encrypt=True):
+		assert ID is None or type(ID) == int
 		assert type(protocols) == list
 		assert len(protocols) > 0
 		for protocol in protocols: assert isinstance(protocol, prot.Protocol)
+		assert type(encrypt) == bool
 		self.is_alive = False
-		super().__init__(protocols, ID=ID)
+		super().__init__(protocols, ID=ID, encrypt=encrypt)
 
 	def ping(self, ID):
 		assert self.is_alive
@@ -41,7 +44,7 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 		return super().ping(ID)
 
 	def my_id(self):
-		return self.node.info.ID;
+		return self.node.info.ID
 	
 	def connect(self, ID, protocol, dest):
 		assert self.is_alive
@@ -63,12 +66,14 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 	def listen(self, timeout=None):
 		assert self.is_alive
 		assert timeout is None or type(timeout) is float
+		if timeout is None: timeout = 3600.0
 		return super().recv_data(timeout=timeout)
 
 	def recv(self, ID, timeout=None):
 		assert self.is_alive
 		assert type(ID) == int
 		assert timeout is None or type(timeout) is float
+		if timeout is None: timeout = 10.0
 		return super().recv_data(ID=ID, timeout=timeout)
 	
 	def run(self):
