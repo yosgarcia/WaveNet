@@ -407,16 +407,17 @@ def ejecutar_ping():
     """
     Ejecuta un ping
     """
+    time.sleep(1)
     transmite_freq(PING_FREQ)
     transmitir_silencio()
+    time.sleep(1)
 
 def emitir_trama(trama):
     """
     Transmite una trama byte por byte como audio.
     Para iniciar la transmicion, empieza con un ping, seguido de un silencio
     """
-    transmite_freq(PING_FREQ)
-    transmitir_silencio()
+    ejecutar_ping()
 
     for byte in trama.bytes_trama:
         freq = byte_to_freq(byte)
