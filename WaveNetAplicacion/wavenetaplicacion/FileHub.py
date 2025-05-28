@@ -90,6 +90,14 @@ class FileHub:
                     resource='file_query_response',
                     body={'nodes': owners}
                 )
+            elif mtype == 'REQUEST' and resource == 'list_files':
+               files = sorted(self._registry.keys())
+               send_message(
+                   dest_id=from_id,
+                   msg_type='RESPONSE',
+                   resource='list_files_response',
+                   body={'files': files}
+               )
 
     def lookup(self, filename: str) -> List[int]:
         """
