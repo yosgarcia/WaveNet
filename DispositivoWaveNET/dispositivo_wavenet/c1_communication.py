@@ -152,10 +152,9 @@ def escuchar_string(my_mac_address_str, timeout=None):
     if timeout is None: timeout = TIME_TO_SAY_128_BYTES + 2
     sndr_mac = 0x0
     cant_tramas = -1
-    logging.info(f"Timeout : {timeout}")
-    logging.info(f"Repetitions : {max(TIMES_TO_COMUNICATE_128_BYTES//2, 1)}")
 
-    #Vamos a intentar escuchar algun ping de crear archivo como por 5 veces
+    logging.info("Listening...")
+
     t_arch_info = None
     for i in range(max(TIMES_TO_COMUNICATE_128_BYTES//2, 1)):
         try:
@@ -169,6 +168,10 @@ def escuchar_string(my_mac_address_str, timeout=None):
 
     if (type(t_arch_info) is not Trama):
         logging.info("No se escucho ninguna trama con la info del string")
+        return False
+
+    if (t_arch_info.get_checksum_valido() == False):
+        logging.warning(f"Falló el checksum...")
         return False
     
     logging.info("Info del string a recibir:")

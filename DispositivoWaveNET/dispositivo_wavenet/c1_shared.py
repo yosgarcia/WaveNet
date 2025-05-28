@@ -13,8 +13,8 @@ import logging
 
 # Audio
 SAMPLE_RATE = 44100           # Hz
-BYTE_DURATION = 0.18*3/2       # Segundos
-SILENCE_DURATION = 0.36       # Segundos
+BYTE_DURATION = 0.24       # Segundos
+SILENCE_DURATION = 0.3       # Segundos
 BASE_FREQ = 350               # Frecuencia para byte 0
 SILENCE_FREQ = 200
 FREQ_STEP = 50
@@ -411,7 +411,6 @@ def ejecutar_ping():
     """
     time.sleep(2)
     transmite_freq(PING_FREQ, duration=BYTE_DURATION*2)
-    #transmitir_silencio()
 
 def emitir_trama(trama):
     """
@@ -419,16 +418,19 @@ def emitir_trama(trama):
     Para iniciar la transmicion, empieza con un ping, seguido de un silencio
     """
     transmite_freq(PING_FREQ, duration=BYTE_DURATION*2)
-    transmitir_silencio()
+    
+    previo = None
 
     for byte in trama.bytes_trama:
         freq = byte_to_freq(byte)
         logging.info(f"Enviando byte {byte} -> {freq:.1f} Hz")
+        if previo != byte: transmitir_silencio()
+        else: transmitir_silencio(duration=SILENCE_DURATION*4/5)
         transmite_freq(freq)
-        transmitir_silencio()
+        previo = byte
     
+    transmitir_silencio()
     transmite_freq(FREQ_EOF, duration=BYTE_DURATION*2)
-    #transmitir_silencio()
     logging.info("Trama transmitida.")
         
 # ------------------------------------------------------------------------------------------------------------
