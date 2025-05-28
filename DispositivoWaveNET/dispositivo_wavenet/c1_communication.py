@@ -149,14 +149,14 @@ def escuchar_string(my_mac_address_str, timeout=None):
     """
 
     my_address_bytes = mac_str_to_bytes(my_mac_address_str)
-    if timeout is None: timeout = TIME_TO_SAY_128_BYTES + 2
+    if timeout is None: timeout = TIME_TO_SAY_128_BYTES + 10
     sndr_mac = 0x0
     cant_tramas = -1
 
     logging.info("Listening...")
 
     t_arch_info = None
-    for i in range(max(TIMES_TO_COMUNICATE_128_BYTES//2, 1)):
+    for i in range(TIMES_TO_COMUNICATE_128_BYTES):
         try:
             t_arch_info = escuchar_y_retornar_trama(timeout = timeout)
             t_arch_info.imprimir()
@@ -289,6 +289,7 @@ def emitir_hasta_respuesta_ping(trama, my_origin_bytes, my_sender_bytes, timeout
     for i in range (TIMES_TO_COMUNICATE_128_BYTES):
         logging.info(f"Emitiendo trama por {i +1 } vez")
         emitir_trama(trama)
+	time.sleep(0.5)
         for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
             if escuchar_ping(3):
                 time.sleep(1)
