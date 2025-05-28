@@ -12,8 +12,8 @@ import time
 
 # Audio
 SAMPLE_RATE = 44100           # Hz
-BYTE_DURATION = 0.15          # Segundos
-SILENCE_DURATION = 0.3       # Segundos
+BYTE_DURATION = 0.18       # Segundos
+SILENCE_DURATION = 0.36       # Segundos
 BASE_FREQ = 550               # Frecuencia para byte 0
 SILENCE_FREQ = 200
 FREQ_STEP = 70
@@ -35,7 +35,7 @@ VERSION = 1
 TIME_TO_SAY_OK = 10
 TIMES_TO_COMUNICATE_OK = 3
 
-TIME_TO_SAY_128_BYTES = 35
+TIME_TO_SAY_128_BYTES = 113
 TIMES_TO_COMUNICATE_128_BYTES = 3
 
 # Frecuencias especiales
@@ -54,7 +54,20 @@ FREQ_EOF = 16000
 """
 
 class Trama:
+    """
+    Clase para representar la estructura de las tramas que se van a enviar
+    """
     def __init__(self, bytes_trama=None, version=None, mac_origen=None, mac_destino=None, tipo=None, payload=None):
+        """
+        Constructor de la clase que construye las partes de la trama
+
+        @param bytes_trama Son los bytes que forman parte de la trama
+        @param version Version del protocolo que se está usando
+        @param mac_origen MAC address del origen de la trama
+        @param mac_destino MAC address del destino de la trama
+        @param tipo Indica el tipo de trama que se esta enviando
+        @param payload Cuerpo del mensaje a transmitir
+        """
         if bytes_trama:
             self.bytes_trama = bytearray(bytes_trama)
             self._parse()
@@ -70,6 +83,9 @@ class Trama:
             self._build()
 
     def _parse(self):
+        """
+        Función para separar los bytes de la trama en los diferentes headers y cuerpo del mensaje
+        """
         if len(self.bytes_trama) < 15:
             raise ValueError("Trama muy corta")
 
@@ -86,18 +102,31 @@ class Trama:
         self.checksum = self.bytes_trama[15+self.length:15+self.length+4]
 
     def _build(self):
+        """
+        Función para construir la trama con su checksum
+        """
         header = bytearray([self.version]) + self.mac_origen + self.mac_destino + bytearray([self.tipo, self.length])
         self.checksum = calcular_checksum(header + self.payload)
         self.bytes_trama = header + self.payload + self.checksum
 
     def get_bytes(self):
+        """
+        Getter para obtener los bytes de la trama
+        """
         return bytes(self.bytes_trama)
 
     def get_checksum_valido(self):
+        """
+        Verificar el checksum dado en la trama sea valido
+        """
+        
         header_y_payload = self.bytes_trama[:15 + self.length]
         return self.checksum == calcular_checksum(header_y_payload)
 
     def imprimir(self):
+        """
+        Imprimir la trama
+        """
         def mac_to_str(mac_bytes):
             return ':'.join(f'{b:02x}' for b in mac_bytes)
 
@@ -120,6 +149,11 @@ def byte_to_freq(byte):
     return BASE_FREQ + byte * FREQ_STEP
 
 def freq_to_byte(freq):
+    """
+    @brief Convierte una frecuencia a un byte (0–255) si es válida y cercana a la ideal.
+    @param freq Frecuencia en Hz.
+    @return Byte correspondiente o None si no es válido.
+    """
     byte = int(round((freq - BASE_FREQ) / FREQ_STEP))
     if 0 <= byte <= 255:
         freq_calc = BASE_FREQ + byte * FREQ_STEP
@@ -142,14 +176,26 @@ def mac_str_to_bytes(mac_str):
     
 def calcular_checksum(trama):
     """
-    Calcula el checksum de una trama.
+    @brief Calcula el checksum CRC32 de una trama.
+
+    @param trama Bytes de la trama sobre los que se calcula el checksum (bytes o bytearray).
+
+    @return Checksum de 4 bytes en orden big-endian.
     """
     checksum = zlib.crc32(trama)
     return checksum.to_bytes(4, byteorder='big')
 
 def crear_trama(version, bytes_mac_org, bytes_mac_dest, tipo, cur_payload):
     """
-    Crea una trama con el formato: [version][MAC_org][MAC_dest][tipo][length][payload][checksum]
+    @brief Crea una trama con el formato: [version][MAC_org][MAC_dest][tipo][length][payload][checksum].
+
+    @param version Versión del protocolo (byte).
+    @param bytes_mac_org Dirección MAC de origen (bytes).
+    @param bytes_mac_dest Dirección MAC de destino (bytes).
+    @param tipo Tipo de trama (int o byte).
+    @param cur_payload Carga útil (payload) de la trama (bytes).
+
+    @return Trama construida.
     """
     trama = Trama(version=version,
                   mac_origen=bytes_mac_org,
@@ -159,6 +205,18 @@ def crear_trama(version, bytes_mac_org, bytes_mac_dest, tipo, cur_payload):
     return trama
 
 def crear_trama_archivo_info(bytes_mac_org, bytes_mac_dest, cantidad_tramas, nombre_archivo):
+    """
+    @brief Crea una trama de tipo archivo info con cantidad de tramas y nombre de archivo.
+    El payload tiene 4 bytes del checksum, y el resto del nombre del archivo
+    
+    @param bytes_mac_org Dirección MAC de origen (bytes).
+    @param bytes_mac_dest Dirección MAC de destino (bytes).
+    @param cantidad_tramas Número total de tramas del archivo (int).
+    @param nombre_archivo Nombre del archivo (str).
+    
+    @return Trama con el payload codificado.
+     
+    """
     payload_cant = cantidad_tramas.to_bytes(4, byteorder='big')
     payload_nombre = nombre_archivo.encode('utf-8')  # convierte string a bytes
     payload = payload_cant + payload_nombre
@@ -172,6 +230,15 @@ def crear_trama_archivo_info(bytes_mac_org, bytes_mac_dest, cantidad_tramas, nom
     )
 
 def decodificar_payload_archivo_info(payload: bytes):
+    """
+    @brief Decodifica el payload de una trama de tipo ARCHIVO_INFO.
+
+    @param payload Bytes que contienen los datos del payload. Los primeros 4 bytes representan la cantidad de tramas, el resto es el nombre del archivo.
+
+    @return Una tupla (cantidad_tramas, nombre_archivo), donde:
+        - cantidad_tramas (int): Número total de tramas que se esperan.
+        - nombre_archivo (str): Nombre del archivo transmitido.
+    """
     # Extraer los primeros 4 bytes para la cantidad de tramas
     cantidad_tramas = int.from_bytes(payload[:4], byteorder='big')
 
@@ -181,11 +248,28 @@ def decodificar_payload_archivo_info(payload: bytes):
     return cantidad_tramas, nombre_archivo
 
 def verificar_datos_esperados(trama: Trama, tipo_esperado, org_esperado, dst_esperado):
+    """
+    @brief Verifica si una trama tiene los datos esperados.
+
+    @param trama Trama a verificar.
+    @param tipo_esperado Tipo de trama esperado.
+    @param org_esperado Dirección MAC de origen esperada (6 bytes).
+    @param dst_esperado Dirección MAC de destino esperada (6 bytes).
+
+    @return True si todos los valores coinciden, False en caso contrario.
+    """
     if (trama.tipo == tipo_esperado and trama.mac_origen == org_esperado and trama.mac_destino == dst_esperado):
         return True
     return False
 
 def crear_trama_ok(bytes_mac_org, bytes_mac_dest, bytes_checksum_received):
+    """
+    @brief Crea una trama OK con un checksum como payload.
+    @param bytes_mac_org Dirección MAC de origen (6 bytes).
+    @param bytes_mac_dest Dirección MAC de destino (6 bytes).
+    @param bytes_checksum_received Checksum recibido en bytes (4 bytes).
+    @return Trama codificada con tipo OK.
+    """
     return crear_trama(
         version=VERSION,
         bytes_mac_org=bytes_mac_org,
@@ -199,6 +283,14 @@ def crear_trama_ok(bytes_mac_org, bytes_mac_dest, bytes_checksum_received):
 # ------------------------------------------------------------------------------------------------------------
 
 def detectar_frecuencia(audio, sample_rate):
+    """
+    @brief Detecta la frecuencia dominante en una señal de audio.
+
+    @param audio Arreglo NumPy unidimensional con muestras de audio.
+    @param sample_rate Frecuencia de muestreo del audio en Hz.
+
+    @return Frecuencia dominante detectada en Hz (float).
+    """
     fft = np.fft.fft(audio)
     freqs = np.fft.fftfreq(len(audio), 1/sample_rate)
     magnitudes = np.abs(fft)
@@ -206,7 +298,13 @@ def detectar_frecuencia(audio, sample_rate):
     return abs(freqs[peak_idx])
 
 def escuchar_y_retornar_trama(timeout):
+    """
+    Escucha frecuencias de audio y reconstruye una trama por un tiempo determinado
+    Si escucha un ping inicial, el conteo de tiempo se reinicia
+    @param timeout Tiempo en segundos que va a tardar para escuchar la trama.
+    @return Trama correspondiente escuchada, que puede ser incorrecta.
 
+    """
     bytes_recibidos = []
     print("Escuchando... (esperando datos hasta EOF 7000 Hz)")
 
@@ -217,10 +315,10 @@ def escuchar_y_retornar_trama(timeout):
     while True:
 
         # Verificar si se superó el timeout
-        if time.time() - start_time > timeout:
+        if (time.time() - start_time > timeout):
             print("Timeout alcanzado. Terminando escucha.")
             break
-
+            
         # Leer bloque de audio del tamaño de un byte
         duracion_muestra = int(SAMPLE_RATE * (BYTE_DURATION-0.08))
         audio = sd.rec(duracion_muestra, samplerate=SAMPLE_RATE, channels=1, dtype='float64')
@@ -233,6 +331,7 @@ def escuchar_y_retornar_trama(timeout):
             if (abs(freq - PING_FREQ) < 10):
                 heard_ping = True
                 print("Escuche el ping")
+                start_time = time.time() # Reset start time
             continue
 
         if abs(freq - FREQ_EOF) < 10:  # Frecuencia EOF detectada
@@ -254,19 +353,61 @@ def escuchar_y_retornar_trama(timeout):
     trama = Trama(bytes_trama=bytes_recibidos)
     return trama
 
+
+def escuchar_ping(timeout):
+    """
+    Escucha un sonido de ping durante un tiempo determinado.
+    @return False si no se escucha un ping, True si sí se escucha
+    """
+    bytes_recibidos = []
+    print("Escuchando ping... (esperando datos hasta EOF 7000 Hz)")
+
+    heard_ping = False
+    start_time = time.time()
+
+    while True:
+        # Verificar si se superó el timeout
+        if time.time() - start_time > timeout:
+            print("Timeout alcanzado. Terminando escucha.")
+            return False
+
+        # Leer bloque de audio del tamaño de un byte
+        duracion_muestra = int(SAMPLE_RATE * (BYTE_DURATION-0.08))
+        audio = sd.rec(duracion_muestra, samplerate=SAMPLE_RATE, channels=1, dtype='float64')
+        sd.wait()
+
+        audio = audio.flatten()
+        freq = detectar_frecuencia(audio, SAMPLE_RATE)
+        
+        if (abs(freq - PING_FREQ) < 10):
+            print("Escuche el ping")
+            return True
+
+
+
 def transmite_freq(freq, duration=BYTE_DURATION):
+    """
+    Reproduce una frecuencia de audio por cierta duración.
+    """
     t = np.linspace(0, duration, int(SAMPLE_RATE * duration), False)
     tono = 0.5 * np.sin(2 * np.pi * freq * t)
     sd.play(tono, samplerate=SAMPLE_RATE)
     sd.wait()
 
 def transmitir_silencio(freq = SILENCE_FREQ, duration=SILENCE_DURATION):
+    """
+    Reproduce una frecuencia de silencio para separación entre bytes.
+    """
     t = np.linspace(0, duration, int(SAMPLE_RATE * duration), False)
     tono = 0.5 * np.sin(2 * np.pi * freq * t)
     sd.play(tono, samplerate=SAMPLE_RATE)
     sd.wait()
 
 def emitir_trama(trama):
+    """
+    Transmite una trama byte por byte como audio.
+    Para iniciar la transmicion, empieza con un ping, seguido de un silencio
+    """
     transmite_freq(PING_FREQ)
     transmitir_silencio()
 
@@ -279,18 +420,6 @@ def emitir_trama(trama):
     transmite_freq(FREQ_EOF)  # Frecuencia especial para EOF
     print("Trama transmitida.")
         
-
-def enviar_ping(mac_origin):
-    version = VERSION
-    tipo = TIPO_PING
-    payload = b''
-    mac_origin = mac_str_to_bytes(mac_origin)
-    dest_mac_broadcast = mac_str_to_bytes("ff:ff:ff:ff:ff:ff")
-
-    trama = crear_trama(version, mac_origin, dest_mac_broadcast, tipo, payload)
-    print(f"Enviando PING desde {mac_origin}...")
-    emitir_trama(trama)
-
 # ------------------------------------------------------------------------------------------------------------
 # Parte de la clase Pruebas
 # ------------------------------------------------------------------------------------------------------------

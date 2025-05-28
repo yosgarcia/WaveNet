@@ -1,4 +1,4 @@
-from c1_comunication import *
+from dispositivo_wavenet.c1_comunication import *
 
 #python3 -m venv nombre_del_entorno
 #source nombre_del_entorno/bin/activate
@@ -11,46 +11,29 @@ from c1_comunication import *
 #            print(f"{i}: {device['name']}")
 
 
-# python3 dispositivo_wavenet.py -a prueba.txt -b 11:22:33:44:55:66 -d 4
-'''
+# python3 dispositivo_wavenet.py -a prueba.txt -b aa:bb:cc:dd:ee:ff -c 11:22:33:44:55:66 -d 5
+# python3 dispositivo_wavenet.py -a prueba.txt -b 11:22:33:44:55:66 -d 6
+
+
 class DispositivoWaveNET:
     def __init__(self, mac_origen, mac_destino=None):
         self.mac_origen = mac_origen
         self.mac_destino = mac_destino
     
-    def enviar_archivo(self, ruta_archivo):
+    def enviar_string(self, string):
         """
-        Envía un archivo a través de sonido.
-        :param ruta_archivo: Ruta del archivo a enviar.
-        :return: True si el envío fue exitoso, False en caso contrario.
+        Envía un string a través de sonido.
+        @param string: Mensaje en string a enviar.
+        @return: True si el envío fue exitoso, False en caso contrario.
         """
-        if not os.path.exists(ruta_archivo):
-            raise FileNotFoundError(f"El archivo {ruta_archivo} no existe.")
-        return enviar_archivo_por_sonido(ruta_archivo, self.mac_origen, self.mac_destino)
+        return enviar_string_por_sonido(string, self.mac_origen, self.mac_destino)
     
-    def escuchar_archivo(self):
+    def escuchar_string(self):
         """
-        Escucha un archivo a través de sonido.
-        :return: True si la escucha fue exitosa, False en caso contrario.
+        Escucha un string a través de sonido.
+        @return: True si la escucha fue exitosa, False en caso contrario.
         """
-        return escuchar_archivo(self.mac_origen)
-
-    def guardar_archivo_en_tramas_wav(self, ruta_archivo):
-        guardar_archivo_en_tramas_wav(ruta_archivo, self.mac_origen, self.mac_destino)
-
-
-    def escuchar_y_obtener_trama(self, tiempo_espera=TIME_TO_SAY_128_BYTES):
-        """
-        Escucha y retorna una trama.
-        :param tiempo_espera: Tiempo máximo para esperar la trama.
-        :return: Trama recibida.
-        """
-        try:
-            trama = escuchar_y_retornar_trama(tiempo_espera)
-            return trama
-        except Exception as e:
-            print(f"No se escuchó ninguna trama: {e}")
-            return None
+        return escuchar_string(self.mac_origen)
 
 '''
 def main():
@@ -64,7 +47,7 @@ def main():
     args = parser.parse_args()
     ruta = args.archivo
     
-    if not os.path.exists(ruta):
+    if (args.modo=="1" or args.modo=="3") and not os.path.exists(ruta):
         print(f"El archivo {ruta} no existe.")
         return
 
@@ -92,15 +75,17 @@ def main():
         case "6":
             exito = escuchar_string(args.mac_origen)
             if (not exito): print("No se escucho el archivo correctamente")
-
-
+'''
+'''
 
     #enviar_ping(args.mac_origen)
 
     #send_file_as_sound(ruta, args.mac_origen, args.mac_destino)
 
     #guardar_archivo_en_tramas_wav(ruta, args.mac_origen, args.mac_destino)
+'''
 
-
+'''
 if __name__ == '__main__':
     main()
+'''

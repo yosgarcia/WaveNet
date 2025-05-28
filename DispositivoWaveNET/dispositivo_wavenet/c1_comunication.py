@@ -1,6 +1,12 @@
-from c1_shared import *
+from dispositivo_wavenet.c1_shared import *
 
 def escuchar_archivo(my_mac_address_str):
+    """
+    Método para recibir un archivo por medio de audio
+
+    @param my_mac_address_str Mi MAC address para saber si el archivo me corresponde
+    @return True si se recibió correctamente el archivo, False si hubo un error en la transmisión del archivo
+    """
     my_address_bytes = mac_str_to_bytes(my_mac_address_str)
     sndr_mac = 0x0
     nombre_archivo = ""
@@ -79,6 +85,7 @@ def escuchar_archivo(my_mac_address_str):
 
                 for _ in range(TIMES_TO_COMUNICATE_OK):
                     emitir_trama(trama_ok)
+                    if (escuchar_ping(5)): break
 
     except Exception as e:
         print("Error al escribir el archivo:", e)
@@ -91,6 +98,15 @@ def escuchar_archivo(my_mac_address_str):
 
 #Retorna true si exito
 def enviar_archivo_por_sonido(nombre_archivo, mac_org_str, mac_dest_str):
+    """
+    Función para enviar un archivo por medio de un sonido
+
+    @param nombre_archivo Ruta del archivo a enviar
+    @param mac_org_str String de la MAC address de origen
+    @param mac_dest_str String de la MAC address de destino
+
+    @return True si el archivo es enviado correctamente, False si ocurre un error en el envío del archivo
+    """
     tramas = obtener_tramas_desde_archivo(nombre_archivo,mac_org_str,mac_dest_str)
     my_origin = mac_str_to_bytes(mac_org_str)
     my_sender = mac_str_to_bytes(mac_dest_str)
@@ -114,11 +130,21 @@ def enviar_archivo_por_sonido(nombre_archivo, mac_org_str, mac_dest_str):
         if (not trama_recibida):
             print(f"No se comunico correctamente la trama {i+1}")
             return False
+        time.sleep(0.5)
+        for _ in range(5):
+            transmite_freq(PING_FREQ)
+        time.sleep(1)
         
     print("Archivo enviado")
     return True
 
 def escuchar_string(my_mac_address_str):
+    """
+    Función para recibir un string por medio de audio
+
+    @param my_mac_address_str Mi MAC address para saber si el archivo me corresponde
+    @return string_final El string recibido si se recibió correctamente el archivo, False si hubo un error en la transmisión del archivo
+    """
     my_address_bytes = mac_str_to_bytes(my_mac_address_str)
     sndr_mac = 0x0
     nombre_archivo = ""
@@ -202,6 +228,7 @@ def escuchar_string(my_mac_address_str):
 
                 for _ in range(TIMES_TO_COMUNICATE_OK):
                     emitir_trama(trama_ok)
+                    if (escuchar_ping(5)): break
 
     except Exception as e:
         print("Error al escribir el archivo:", e)
@@ -214,6 +241,16 @@ def escuchar_string(my_mac_address_str):
 
 
 def enviar_string_por_sonido(string, mac_org_str, mac_dest_str):
+    """
+    Función para enviar un string por medio de audio
+
+    @param string El mensaje que se quiere transmitir
+    @param mac_org_str String de la MAC address de origen
+    @param mac_dest_str String de la MAC address de destino
+
+    @return True si el string es enviado correctamente, False si ocurre un error en el envío del mensaje
+    """
+    
     tramas = obtener_tramas_desde_string(string,mac_org_str,mac_dest_str)
     my_origin = mac_str_to_bytes(mac_org_str)
     my_sender = mac_str_to_bytes(mac_dest_str)
@@ -237,30 +274,39 @@ def enviar_string_por_sonido(string, mac_org_str, mac_dest_str):
         if (not trama_recibida):
             print(f"No se comunico correctamente la trama {i+1}")
             return False
-        
+        time.sleep(0.5)
+        for _ in range(6):
+            transmite_freq(PING_FREQ)
+        time.sleep(1)
+
     print("String enviado")
     return True
 
 
 def emitir_hasta_respuesta(trama, my_origin_bytes, my_sender_bytes):
+    """"
+    Función para emitir una trama y recibir un OK representado como una trama de 
+    que tiene en el payload el checksum de mi trama
+    
+    @param trama Mi trama a ser emitada
+    @param my_origin_bytes MAC address del origen del mensaje
+    @param my_sender_bytes MAC address del destinatario del mensaje
 
+    @return True si la trama es emitida y escuchada correctamente, False si no
+    """
     for i in range (TIMES_TO_COMUNICATE_128_BYTES):
         print(f"Emitiendo trama por {i +1 } vez")
         emitir_trama(trama)
         trama_recibida = None
-        for _ in range(max(TIMES_TO_COMUNICATE_OK-2,1)):
+        for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
             try:
                 trama_recibida = escuchar_y_retornar_trama(timeout = TIME_TO_SAY_OK*2)
+                if (trama_recibida is None): continue
                 trama_recibida.imprimir()
+                #Ver si el payload de la trama_recibida es igual a mi checksum de mi trama
+                if (verificar_datos_esperados(trama_recibida, TIPO_OK, my_sender_bytes, my_origin_bytes) and trama_recibida.payload == trama.checksum):
+                    return True
             except:
                 pass
-
-        if (trama_recibida is None):
-            continue
-        
-        #Ver si el payload de la trama_recibida es igual a mi checksum de mi trama
-
-        if (verificar_datos_esperados(trama_recibida, TIPO_OK, my_sender_bytes, my_origin_bytes) and trama_recibida.payload == trama.checksum):
-            return True
 
     return False
