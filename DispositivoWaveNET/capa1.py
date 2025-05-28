@@ -155,7 +155,8 @@ def main():
             0x12, 0x34                  # CRC16 (ejemplo)
         ])
     emitir_trama(trama)
-
+ 
+ 
 
     # Tiempo para una "nota"
     t = np.linspace(0, byte_duration, int(sample_rate * byte_duration), endpoint=False)
