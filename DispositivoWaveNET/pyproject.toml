@@ -1,0 +1,14 @@
+[project]
+name = "dispositivo_wavenet"
+version = "0.1.0"
+description = "A file transmition with sound library"
+authors = [{ name = "Yosward Garcia" }, { name = "Santiago Ramos" }]
+dependencies = ["numpy", "scipy", "sounddevice", "pytest"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools.packages.find]
+where = ["."]
