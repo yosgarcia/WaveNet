@@ -200,6 +200,9 @@ def escuchar_string(my_mac_address_str, timeout=None):
                     trama = escuchar_y_retornar_trama(timeout=timeout)
                     tipo_esperado = (TIPO_TRAMA_FINAL_ARCHIVO if i == cant_tramas - 1 else TIPO_TRAMA_ARCHIVO)
                     trama.imprimir()
+                    if (trama.get_checksum_valido() == False):
+                        logging.warning(f"El checksum de la trama {i+1} es invalido")
+                        continue
                     if verificar_datos_esperados(trama, tipo_esperado, sndr_mac, my_address_bytes):
                         break
                 except Exception as e:
@@ -210,9 +213,6 @@ def escuchar_string(my_mac_address_str, timeout=None):
                 logging.warning(f"No se pudo escuchar la trama {i+1}")
                 return False
             
-            if (trama.get_checksum_valido() == False):
-                logging.warning(f"El checksum de la trama {i+1} es invalido")
-                return False
             
             logging.info(f"Trama {i + 1} recibida correctamente")
 
@@ -289,7 +289,7 @@ def emitir_hasta_respuesta_ping(trama, my_origin_bytes, my_sender_bytes, timeout
     for i in range (TIMES_TO_COMUNICATE_128_BYTES):
         logging.info(f"Emitiendo trama por {i +1 } vez")
         emitir_trama(trama)
-	time.sleep(0.5)
+        time.sleep(0.5)
         for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
             if escuchar_ping(3):
                 time.sleep(1)
