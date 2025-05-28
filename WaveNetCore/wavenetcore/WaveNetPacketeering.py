@@ -85,6 +85,7 @@ class Packet:
 		"""
 		Determina si un paquete es igual a otro.
 
+		@param other El otro paquete
 		@return Si un paquete es igual a otro
 		"""
 		if type(other) != type(self): return False
@@ -142,6 +143,7 @@ class SecretPacket:
 		"""
 		Determina si un paquete es igual a otro.
 
+		@param other El otro paquete
 		@return Si un paquete es igual a otro
 		"""
 		if type(other) != type(self): return False

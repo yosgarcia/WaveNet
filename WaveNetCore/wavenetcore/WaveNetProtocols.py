@@ -7,43 +7,100 @@ from wavenetcore.WaveNetPacketeering import *
 import logging
 
 class ProtocolType(Enum):
+	"""
+	Enum que maneja los tipos de protocolos disponibles.
+	"""
+
 	LOCAL = 1
 	IP = 2
 
 class Protocol:
+	"""
+	Clase que maneja la base de los protocolos.
+	"""
+
 	def __init__(self, protocol_type, sender, listener, as_public):
+		"""
+		Constructor para los protocolos.
+
+		@param protocol_type El tipo de protocolo
+		@param sender La función a utilizar para enviar datos
+		@param listener La función a utilizar para recibir datos
+		@param as_public La función a utilizar para obtener la versión compartida
+		"""
+
 		self.protocol_type = protocol_type
 		self.sender = sender
 		self.listener = listener
 		self.as_public = as_public
 		self.switch = Event()
 
-	def send(self, data, dest):
-		self.sender(data, dest)
+	def send(self, packet, dest):
+		"""
+		Envía datos por medio del protocolo.
+
+		@param packet El paquete a enviar
+		@param dest El destino de la información
+		"""
+
+		self.sender(packet, dest)
 
 	def listen(self, func):
+		"""
+		Escucha por conexión entrantes y recibe información.
+
+		@param func Funciona a utilizar para procesar los paquetes entrantes
+		@return El thread encargado de escuchar
+		"""
+
 		self.switch.clear()
 		t = Thread(target=self.listener, args=[func, self.switch], daemon=True)
 		t.start()
 		return t
 
 	def public(self):
+		"""
+		Genera la versión pública del protocolo (cómo conectarse al host del protocolo externamente).
+
+		@return Un string que corresponde a su conexión pública.
+		"""
+
 		return self.as_public()
 
 	def kill(self):
+		"""
+		Mata al thread de esucha.
+		"""
+
 		self.switch.set()
 
 class LocalProtocol(Protocol):
+	"""
+	Clase que maneja el protocolo de TCP/IP sobre la interfaz de Loopback.
+	"""
 
 	IP = "127.0.0.1"
 	protocol_type = ProtocolType.LOCAL
 
 	def __init__(self, port=None):
+		"""
+		Constructor de la clase.
+
+		@param port El puerto a utilizar
+		"""
+
 		self.port = port
 		if self.port is not None: assert type(self.port) == int
 		super().__init__(LocalProtocol.protocol_type, self.sender, self.listener, self.as_public)
 
 	def sender(self, packet, dest):
+		"""
+		Envía datos por medio del protocolo.
+
+		@param packet El paquete a enviar
+		@param dest El destino de la información
+		"""
+
 		data = packet.form()
 
 		PORT = int(dest)
@@ -53,6 +110,13 @@ class LocalProtocol(Protocol):
 			s.sendall(data.encode())
 
 	def listener(self, func, switch):
+		"""
+		Escucha por conexión entrantes y recibe información.
+
+		@param func Funciona a utilizar para procesar los paquetes entrantes
+		@param switch El indicador de terminación para el thread
+		"""
+
 		assert self.port is not None
 
 		PORT = self.port
@@ -80,14 +144,29 @@ class LocalProtocol(Protocol):
 					pass
 
 	def as_public(self):
+		"""
+		Genera la versión pública del protocolo (cómo conectarse al host del protocolo externamente).
+
+		@return Un string que corresponde a su conexión pública.
+		"""
+
 		assert self.port is not None
 		return str(self.port)
 
 class IPProtocol(Protocol):
+	"""
+	Clase que maneja el protocolo de TCP/IP.
+	"""
 
 	protocol_type = ProtocolType.IP
 
 	def __init__(self, ip=None, port=None):
+		"""
+		Constructor de la clase.
+
+		@param ip El ip sobre el cual abrirse
+		@param port El puerto sobre el cual abrirse
+		"""
 		self.ip = ip
 		self.port = port
 		if self.ip is not None: assert type(self.ip) == str
@@ -95,6 +174,13 @@ class IPProtocol(Protocol):
 		super().__init__(IPProtocol.protocol_type, self.sender, self.listener, self.as_public)
 
 	def sender(self, packet, dest):
+		"""
+		Envía datos por medio del protocolo.
+
+		@param packet El paquete a enviar
+		@param dest El destino de la información
+		"""
+
 		IP, PORT = None, None
 
 		data = json.loads(dest)
@@ -110,6 +196,13 @@ class IPProtocol(Protocol):
 			s.sendall(data.encode())
 
 	def listener(self, func, switch):
+		"""
+		Escucha por conexión entrantes y recibe información.
+
+		@param func Funciona a utilizar para procesar los paquetes entrantes
+		@param switch El indicador de terminación para el thread
+		"""
+
 		assert self.port is not None
 		assert self.ip is not None
 
@@ -139,16 +232,36 @@ class IPProtocol(Protocol):
 					pass
 
 	def as_public(self):
+		"""
+		Genera la versión pública del protocolo (cómo conectarse al host del protocolo externamente).
+
+		@return Un string que corresponde a su conexión pública.
+		"""
+
 		assert self.ip is not None
 		assert self.port is not None
 		return IPProtocol.ip_to_json(self.ip, self.port)
 
 	def ip_to_json(ip, port):
+		"""
+		Convierte un par IP, Puerto a su versión en json.
+
+		@param ip El IP
+		@param port El puerto
+		@return El string que corresponde al json del IP y el puerto
+		"""
+
 		assert type(ip) == str
 		assert type(port) == int
 		return json.dumps({"ip" : ip, "port" : port})
 
 	def get_interfaces():
+		"""
+		Obtiene las interfaces disponibles en la máquina actual (exluyendo a loopback).
+
+		@return Lista de las interfaces disponibles
+		"""
+
 		results = []
 		for iface, addrs in psutil.net_if_addrs().items():
 			for addr in addrs:
@@ -159,24 +272,66 @@ class IPProtocol(Protocol):
 
 
 def empty_protocol_from_str(name):
+	"""
+	Crea una instancia vacía de un protocolo a partir de su nombre.
+
+	@param name El nombre del protocolo
+	@return La instancia vacía del protocolo
+	"""
+
 	assert name in ProtocolType.__members__
 	if ProtocolType[name] == ProtocolType.LOCAL: return LocalProtocol()
 	if ProtocolType[name] == ProtocolType.IP: return IPProtocol()
 	assert False
 
 class Link:
+	"""
+	Clase que maneja las conexiones entre nodos.
+	"""
+
 	def __init__(self, dest, protocol):
+		"""
+		Constructor para las conexiones.
+
+		@param dest El destino de la conexión
+		@param protocol El protocolo a utilizar
+		"""
+
 		self.protocol = protocol
 		self.dest = dest
 
 	def send(self, packet):
+		"""
+		Manda un paquete a través del protocolo.
+
+		@param packet El paquete a mandar
+		"""
+
 		self.protocol.send(packet, self.dest)
 
 	def __str__(self):
+		"""
+		Genera la versión textual de la conexión.
+
+		@return La versión textual de la conexión
+		"""
+
 		return "|" + self.protocol.protocol_type.name + "|" + self.dest
 
 	def __hash__(self):
+		"""
+		Genera el hash de la conexión.
+
+		@return El hash de la conexión
+		"""
+
 		return hash(str(self))
 
 	def __eq__(self, other):
+		"""
+		Determina si dos conexiones son iguales.
+
+		@param other La otra conexión
+		@return Si las dos conexiones son iguales
+		"""
 		return str(self) == str(other)
