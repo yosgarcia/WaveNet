@@ -304,7 +304,9 @@ class SoundProtocol(Protocol):
 				w = wn(self.MAC, dest)
 				w.send(packet.form(), timeout=60*3)
 
-		return Thread(target=temp, args=(), daemon=True).start()
+		t = Thread(target=temp, args=(), daemon=True)
+		t.start()
+		return t
 	
 
 	def listener(self, func, switch):
