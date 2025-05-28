@@ -40,8 +40,8 @@ TIME_TO_SAY_128_BYTES = 113
 TIMES_TO_COMUNICATE_128_BYTES = 3
 
 # Frecuencias especiales
-PING_FREQ = 100
-FREQ_EOF = 150
+PING_FREQ = 250
+FREQ_EOF = 350
 
 
 # ------------------------------------------------------------------------------------------------------------
@@ -326,6 +326,7 @@ def escuchar_y_retornar_trama(timeout):
         sd.wait()
 
         audio = audio.flatten()
+        #logging.info(f"AUDIO: {audio}")
         freq = detectar_frecuencia(audio, SAMPLE_RATE)
         
         if (not heard_ping):
@@ -377,6 +378,7 @@ def escuchar_ping(timeout):
         sd.wait()
 
         audio = audio.flatten()
+        #logging.info(f"AUDIO: {audio}")
         freq = detectar_frecuencia(audio, SAMPLE_RATE)
         
         if (abs(freq - PING_FREQ) < 10):

@@ -6,4 +6,4 @@ def listen():
 	w = wn("0:0:0:0:0:0", "1:1:1:1:1:1")
 	w.listen(timeout=30)
 
-listen()
+print(listen())
