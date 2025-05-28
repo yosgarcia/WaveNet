@@ -267,7 +267,6 @@ def enviar_string_por_sonido(string, mac_org_str, mac_dest_str, timeout=None):
         if (not trama_recibida):
             logging.warning(f"No se comunico correctamente la trama {i+1}")
             return False
-        #for _ in range(6):#transmite_freq(PING_FREQ)
         time.sleep(1)
         ejecutar_ping()
 
@@ -290,7 +289,7 @@ def emitir_hasta_respuesta_ping(trama, my_origin_bytes, my_sender_bytes, timeout
     for i in range (TIMES_TO_COMUNICATE_128_BYTES):
         logging.info(f"Emitiendo trama por {i +1 } vez")
         emitir_trama(trama)
-        time.sleep(0.5)
+        time.sleep(1)
         for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
             if escuchar_ping(3):
                 time.sleep(1)

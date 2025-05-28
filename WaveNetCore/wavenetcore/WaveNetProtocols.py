@@ -322,7 +322,7 @@ class SoundProtocol(Protocol):
 			try:
 				with SoundProtocol.mutex:
 					w = wn(self.MAC, "")
-					data = w.listen(timeout=60*3, init_timeout=20)
+					data = w.listen(timeout=60*3, init_timeout=40)
 				packet = reconstruct_packet(data)
 				func(packet)
 			except Exception as e:
