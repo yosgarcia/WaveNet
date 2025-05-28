@@ -231,7 +231,8 @@ def escuchar_string(my_mac_address_str, timeout=None):
 
             time.sleep(0.1)
             ejecutar_ping()
-            if (escuchar_ping(5)): break
+            time.sleep(0.1)
+	    #if (escuchar_ping(5)): break
 
             """
             for _ in range(TIMES_TO_COMUNICATE_OK):
@@ -309,7 +310,9 @@ def emitir_hasta_respuesta_ping(trama, my_origin_bytes, my_sender_bytes, timeout
         logging.info(f"Emitiendo trama por {i +1 } vez")
         emitir_trama(trama)
         for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
-            if escuchar_ping(timeout): return True
+            if escuchar_ping(timeout):
+		    time.sleep(0.1)
+		    return True
     return False
 
 def emitir_hasta_respuesta(trama, my_origin_bytes, my_sender_bytes, timeout=None):
