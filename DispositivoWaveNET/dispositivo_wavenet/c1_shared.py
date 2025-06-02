@@ -312,9 +312,9 @@ def escuchar_y_retornar_trama(timeout, ping_timeout):
 	expect_silence = True
 	heard_ping = False
 	start_time = time.time()
+	since_byte = 0
 
-	while True:
-
+	while since_byte < 10:
 		# Verificar si se superó el timeout
 		if (heard_ping and time.time() - start_time > timeout):
 			logging.info("Timeout alcanzado. Terminando escucha.")
@@ -337,6 +337,8 @@ def escuchar_y_retornar_trama(timeout, ping_timeout):
 				start_time = time.time() # Reset start time
 			continue
 
+		since_byte += 1
+
 		if abs(freq - FREQ_EOF) < 10:  # Frecuencia EOF detectada
 			logging.info("EOF detectado.")
 			break
@@ -349,6 +351,7 @@ def escuchar_y_retornar_trama(timeout, ping_timeout):
 			logging.info(f"BYTE <- {byte}")
 			bytes_recibidos.append(byte)
 			expect_silence = True
+			since_byte = 0
 		else:
 			expect_silence = False
 			logging.info(f"--------------")

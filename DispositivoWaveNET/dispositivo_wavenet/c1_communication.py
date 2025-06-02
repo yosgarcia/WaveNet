@@ -213,6 +213,11 @@ def escuchar_string(my_mac_address_str, timeout=None, init_timeout=None):
 			if trama is None:
 				logging.warning(f"No se pudo escuchar la trama {i+1}")
 				return False
+			if (trama.get_checksum_valido() == False):
+				logging.warning(f"El checksum de la trama {i+1} es invalido")
+				return False
+			if verificar_datos_esperados(trama, tipo_esperado, sndr_mac, my_address_bytes):
+				return False
 			
 			
 			logging.info(f"Trama {i + 1} recibida correctamente")
