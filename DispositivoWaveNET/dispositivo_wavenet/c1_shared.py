@@ -15,8 +15,8 @@ import logging
 SAMPLE_RATE = 44100		   # Hz
 BYTE_DURATION = 0.30	   # Segundos
 SILENCE_DURATION = 0.40	   # Segundos
-BASE_FREQ = 300			   # Frecuencia para byte 0
-SILENCE_FREQ = 150
+BASE_FREQ = 350			   # Frecuencia para byte 0
+SILENCE_FREQ = 200
 FREQ_STEP = 80
 
 # silencio freq 20
@@ -41,7 +41,7 @@ TIMES_TO_COMUNICATE_128_BYTES = 3
 
 # Frecuencias especiales
 PING_FREQ = 250
-FREQ_EOF = 200
+FREQ_EOF = 300
 
 
 # ------------------------------------------------------------------------------------------------------------
