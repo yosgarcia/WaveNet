@@ -13,7 +13,7 @@ class PacketWaiter:
 	Clase que abstrae la acción de "esperar por una respuesta".
 	"""
 
-	timeout = 20.0 # En segundos
+	timeout = 60.0*10 # En segundos
 
 	def __init__(self):
 		"""
@@ -141,6 +141,7 @@ class MeshHub(Node):
 		if not status: raise Exception(protocol)
 		status, dest = verify_tag(data, "dest", str)
 		if not status: raise Exception(dest)
+		logging.info(f"Connect from {packet.src} using {protocol} and destination {dest}")
 		link = Link(dest, empty_protocol_from_str(protocol))
 		self.node.info.add_neighbor(link)
 
@@ -151,6 +152,7 @@ class MeshHub(Node):
 		@param packet El paquete recibido
 		"""
 
+		logging.info(f"Ping from {packet.src}")
 		self.sends(packet.src, "pong", "")
 
 	def process_pong(self, packet):
@@ -180,6 +182,7 @@ class MeshHub(Node):
 		status, ID = verify_tag(data, "id", int)
 		if not status: raise Exception(ID)
 		if ID not in self.nodes: raise Exception("ID not found")
+		logging.info(f"Got request from {packet.src} for {ID}")
 		pem = str(self.nodes[ID])
 		ans = {"id" : ID, "pem" : pem}
 		message = json.dumps(ans)
@@ -204,6 +207,7 @@ class MeshHub(Node):
 		status, pem = verify_tag(data, "pem", str)
 		if not status: raise Exception(pem)
 		public_key = PublicKey(pem=pem.encode())
+		logging.info(f"{id} Wants to join network")
 		if ID in self.nodes: raise Exception("Repeated ID")
 		self.nodes[ID] = public_key
 	
@@ -435,6 +439,7 @@ class MeshNode(Node):
 		if not status: raise Exception(protocol)
 		status, dest = verify_tag(data, "dest", str)
 		if not status: raise Exception(dest)
+		logging.info(f"Connect from {packet.src} using {protocol} and destination {dest}")
 		link = Link(dest, empty_protocol_from_str(protocol))
 		self.node.info.add_neighbor(link)
 
@@ -445,6 +450,7 @@ class MeshNode(Node):
 		@param packet El paquete recibido
 		"""
 
+		logging.info(f"Ping from {packet.src}")
 		self.sends(packet.src, "pong", "")
 
 	def process_pong(self, packet):
