@@ -22,6 +22,6 @@ if __name__ == "__main__":
 	node.connect(0, p, A)
 	signal.signal(signal.SIGINT, lambda s, f: None)
 	signal.pause()
-	print(node.ping(0))
+	logger.info(f"PING STATUS: {node.ping(0)}")
 	signal.pause()
 	node.kill()
