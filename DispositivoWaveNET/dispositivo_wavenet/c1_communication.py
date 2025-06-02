@@ -187,6 +187,7 @@ def escuchar_string(my_mac_address_str, timeout=None, init_timeout=None):
 	string_final = b""  # Usamos bytes primero
 
 	ejecutar_ping()
+	time.sleep(1)
 
 	logging.info("Recibiendo string.....")
 
@@ -226,6 +227,7 @@ def escuchar_string(my_mac_address_str, timeout=None, init_timeout=None):
 
 			time.sleep(1)
 			ejecutar_ping()
+			time.sleep(1)
 
 	except Exception as e:
 		logging.warning(f"Error al recibir el string: {e}")

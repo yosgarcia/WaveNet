@@ -13,7 +13,7 @@ class PacketWaiter:
 	Clase que abstrae la acción de "esperar por una respuesta".
 	"""
 
-	timeout = 60.0*10 # En segundos
+	timeout = 60.0*40 # En segundos
 
 	def __init__(self):
 		"""
