@@ -268,9 +268,10 @@ def enviar_string_por_sonido(string, mac_org_str, mac_dest_str, timeout=None):
 			logging.warning(f"No se comunico correctamente la trama {i+1}")
 			return False
 		time.sleep(1)
-		ejecutar_ping()
+		#ejecutar_ping()
 
 	logging.info("String enviado")
+	time.sleep(2)
 	return True
 
 
