@@ -17,7 +17,7 @@ BYTE_DURATION = 0.30	   # Segundos
 SILENCE_DURATION = 0.40	   # Segundos
 BASE_FREQ = 350			   # Frecuencia para byte 0
 SILENCE_FREQ = 200
-FREQ_STEP = 80
+FREQ_STEP = 70
 
 # silencio freq 20
 # frecuencia base 440
