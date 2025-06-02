@@ -331,7 +331,7 @@ def escuchar_y_retornar_trama(timeout, ping_timeout):
 		freq = detectar_frecuencia(audio, SAMPLE_RATE)
 		
 		if (not heard_ping):
-			if (abs(freq - PING_FREQ) < 10):
+			if (abs(freq - PING_FREQ) < 5):
 				heard_ping = True
 				logging.info("Escuche el ping")
 				start_time = time.time() # Reset start time
@@ -381,7 +381,7 @@ def escuchar_ping(timeout):
 		audio = audio.flatten()
 		freq = detectar_frecuencia(audio, SAMPLE_RATE)
 		
-		if (abs(freq - PING_FREQ) < 10):
+		if (abs(freq - PING_FREQ) < 5):
 			logging.info("Escuche el ping")
 			return True
 

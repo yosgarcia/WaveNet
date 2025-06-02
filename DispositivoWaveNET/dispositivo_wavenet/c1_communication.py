@@ -290,7 +290,7 @@ def emitir_hasta_respuesta_ping(trama, my_origin_bytes, my_sender_bytes, timeout
 	for i in range (TIMES_TO_COMUNICATE_128_BYTES):
 		logging.info(f"Emitiendo trama por {i +1 } vez")
 		emitir_trama(trama)
-		time.sleep(1)
+		time.sleep(2)
 		for _ in range(max(TIMES_TO_COMUNICATE_OK-1,1)):
 			if escuchar_ping(3):
 				time.sleep(1)
