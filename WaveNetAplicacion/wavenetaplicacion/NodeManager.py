@@ -51,4 +51,4 @@ class NodeManager:
 		return SoundProtocol(mac)
 	
 	def shutdown():
-		for node in nodes: node.kill()
+		for node in NodeManager.nodes: node.kill()

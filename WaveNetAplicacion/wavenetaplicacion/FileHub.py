@@ -108,7 +108,7 @@ class FileHub:
 		return list(self._registry.get(filename, []))
 
 
-# python3 FileHub.py
+# python3 FileHub.py --verbose --localp 9001 --localc 0,9000 -n 1
 if __name__ == '__main__':
 	parser = WaveNetParser("FileHub: Crea un file hub")
 	parser.parse()

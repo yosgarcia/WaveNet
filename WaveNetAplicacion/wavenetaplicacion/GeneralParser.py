@@ -47,6 +47,7 @@ class WaveNetParser:
 			if not self.is_hub and args.localc:
 				for idport in args.localc:
 					ID, port = idport.split(',')
+					ID = int(ID)
 					port = int(port)
 					connections.append((ID, protocol, port,))
 
@@ -58,6 +59,7 @@ class WaveNetParser:
 			if not self.is_hub and args.ipc:
 				for idipport in args.ipc:
 					ID, ip, port = idipport.split(",")
+					ID = int(ID)
 					port = int(port)
 					connections.append((ID, protocol, (ip, port,)))
 
@@ -68,6 +70,7 @@ class WaveNetParser:
 			if not self.is_hub and args.soundc:
 				for idmac in args.soundc:
 					ID, mac = idmac.split(',')
+					ID = int(ID)
 					connections.append((ID, protocol, mac,))
 
 		if not self.is_hub: return NodeManager.get_node(ID=args.node_id, protocols=protocols, connections=connections)

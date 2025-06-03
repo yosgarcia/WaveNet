@@ -9,7 +9,7 @@ import argparse
 
 from wavenetaplicacion.Service import send_message, receive_message, send_file
 from wavenetaplicacion.NodeManager import NodeManager
-from wavenetaplicacino.GeneralParser import WaveNetParser
+from wavenetaplicacion.GeneralParser import WaveNetParser
 
 
 def watch_and_register(node, hub_id: int, shared_dir: str, interval: float) -> None:
@@ -109,6 +109,6 @@ def main() -> None:
 		print("[FileServiceDaemon] Parando...")
 		NodeManager.shutdown()
 
-# python3 FileServiceDaemon.py --hub-id <ID FileHUB> --dir ./carpeta_compartida --interval 5.0 --port 8002
+# python3 FileServiceDaemon.py --verbose --localp 9002 --localc 1,9001 -n 2 --hub-id 1 --dir ./carpeta_compartida
 if __name__ == '__main__':
 	main()

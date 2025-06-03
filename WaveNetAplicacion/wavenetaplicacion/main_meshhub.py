@@ -28,6 +28,6 @@ def main():
 		hub.kill()  # Finaliza el hub y cierra sockets
 
 
-# python3 main_meshhub.py
+# python3 main_meshhub.py --verbose --localp 9000
 if __name__ == "__main__":
 	main()

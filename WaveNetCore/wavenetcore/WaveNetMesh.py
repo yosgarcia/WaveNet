@@ -207,7 +207,7 @@ class MeshHub(Node):
 		status, pem = verify_tag(data, "pem", str)
 		if not status: raise Exception(pem)
 		public_key = PublicKey(pem=pem.encode())
-		logging.info(f"{id} Wants to join network")
+		logging.info(f"{ID} Wants to join network")
 		if ID in self.nodes: raise Exception("Repeated ID")
 		self.nodes[ID] = public_key
 	

@@ -21,7 +21,7 @@ def main():
 		required=True,
 		help='Nombre del archivo a descargar'
 	)
-	parser.get_parser().parser.add_argument(
+	parser.get_parser().add_argument(
 		'--out-dir', '-o',
 		default='downloads',
 		help='Directorio donde guardar el archivo'
@@ -94,6 +94,6 @@ def main():
 	except Exception as e:
 		print(f"[FileClient][Error] al recibir fichero: {e}")
 
-# python3 FileClient.py --hub-id <> --filename prueba.txt --out-dir ./descargas --port 8003
+# python3 FileClient.py --verbose --localp 9003 -n 3 --localc 0,9000 --hub-id 1 --out-dir ./descargas -f unga_bunga.md
 if __name__ == "__main__":
 	main()
