@@ -149,7 +149,6 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 
 		assert self.is_alive
 		assert timeout is None or type(timeout) is float
-		if timeout is None: timeout = 3600.0
 		return super().recv_data(timeout=timeout)
 
 	def recv(self, ID, timeout=None):
@@ -164,7 +163,6 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 		assert self.is_alive
 		assert type(ID) == int
 		assert timeout is None or type(timeout) is float
-		if timeout is None: timeout = 60.0
 		return super().recv_data(ID=ID, timeout=timeout)
 	
 	def run(self):
