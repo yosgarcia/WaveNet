@@ -1,30 +1,46 @@
 # WaveNet
 
-## WaveNetCore
-Para instalar WaveNetCore, ejecutar (en esta carpeta):
+## Preparación
+
+Ejecutar `$ make` y después `$ cd WaveNetAplicacion/wavenetaplicacion`.
+
+## Ejecución
+
+### Activar mesh hub
+
 ```
-pip install -e WaveNetCore
+$ python3 main_meshhub.py --verbose --localp 9000
 ```
-## DispositivoWaveNet
-Trama
-version - 1 byte
-mac origen - 6 bytes
-mac destino - 6 bytes
-tipo - 1 byte
-longitud payload - 0-107 byte
-checksum - 4 byte
-eof - 1 byte
 
-#### Bitacora espacial
+### Activar file hub
 
-|Fecha | actividad |
-|-----|-----------|
-|9-05-2025|Diseño y definición de la lógica de la capa 1|
-|9-05-2025|Creación de tramas y generación de sonido para el envío|
-|12-05-2025|Detección y transmisión de sonido|
-|22-05-2025|Restructuración del códido de capa 1 y mejora en transmición|
-|24-05-2025|Comunicación de capa 1 con un archivo|
-|26-05-2025|Capa 1 funcional para un archivo pequeño|
-|27-05-2025|Creación de módulo para el uso de Dispositivo WaveNet|
-|27-05-2025|Envío de string por medio de audio|
+```
+$ python3 FileHub.py --verbose --localp 9001 --localc 0,9000 -n 1
+```
 
+### Activar file DAEMON
+
+```
+$ python3 FileServiceDaemon.py --verbose --localp 9002 --localc 1,9001 -n 2 --hub-id 1 --dir ./carpeta_compartida
+```
+
+### Activar sercivio IRC
+
+```
+$ python3 irc_bot.py --hub-id 1 --server 127.0.0.1 --port 6667 --channel "#wavenet"   --nick "WaveBot" --out-dir ./descargas --localp 9005 --localc 2,9002 -n 3
+```
+
+### Consulta por archivo
+
+```
+$ python3 FileClient.py --verbose --localp 9003 -n 4 --localc 0,9000 --hub-id 1 --out-dir ./descargas -f unga_bunga.md
+```
+
+### Conexión IRC
+
+```
+$ irssi -n jesusg -c 127.0.0.1 -p 6667
+> /join #wavenet
+> !list
+> !get prueba.txt
+```
