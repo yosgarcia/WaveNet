@@ -10,6 +10,11 @@ else ifeq ($(OS), Linux)
 	@which apt > /dev/null || (echo "This script currently supports apt-based distros only." && exit 1)
 	sudo apt update
 	sudo apt install -y portaudio19-dev python3-pip
+	sudo apt install ngircd
+	sudo apt install irssi
+	sudo cp ./ngircd.conf /etc/ngircd/ngircd.conf
+	sudo systemctl restart ngircd
+	sudo ss -tunlp | grep 6667
 else
 	@echo "Unsupported OS: $(OS)"
 	@exit 1
