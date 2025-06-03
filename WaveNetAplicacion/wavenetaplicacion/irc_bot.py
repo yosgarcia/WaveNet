@@ -76,7 +76,7 @@ class WaveNetBot:
 	def start(self):
 		self.reactor.process_forever()
 
-# python3 irc_bot.py   --hub-id <> --node-port 8004   --hub-port 9000   --server 127.0.0.1   --port 6667   --channel "#wavenet"   --nick "WaveBot"   --out-dir "./descargas"
+# python3 irc_bot.py --hub-id 1 --server 127.0.0.1 --port 6667 --channel "#wavenet"   --nick "WaveBot" --out-dir ./descargas --localp 9005 --localc 2,9002
 if __name__ == '__main__':
 	parser = WaveNetParser("Bot IRC para WaveNet")
 	parser.get_parser().add_argument("--server",   default="127.0.0.1", help="Host IRC")
@@ -84,7 +84,7 @@ if __name__ == '__main__':
 	parser.get_parser().add_argument("--channel",  default="#wavenet",	help="Canal IRC")
 	parser.get_parser().add_argument("--nick",	 default="WaveNetBot",  help="Nickname del bot")
 	parser.get_parser().add_argument("--hub-id",   type=int, required=True,  help="ID del nodo FileHub")
-	parser.add_argument("--out-dir",  default="downloads",   help="Carpeta para descargas")
+	parser.get_parser().add_argument("--out-dir",  default="downloads",   help="Carpeta para descargas")
 	parser.parse()
 	args = parser.get_args()
 
