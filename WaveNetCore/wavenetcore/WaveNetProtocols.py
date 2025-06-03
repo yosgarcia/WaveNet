@@ -311,7 +311,7 @@ class SoundProtocol(Protocol):
 			with SoundProtocol.mutex:
 				w = wn(self.MAC, dest)
 				w.send(packet.form(), timeout=60*3)
-			time.sleep(15)
+				time.sleep(10)
 
 		t = Thread(target=temp, args=(), daemon=True)
 		t.start()
