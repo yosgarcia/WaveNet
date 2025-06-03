@@ -9,8 +9,9 @@ import threading
 import time
 from typing import Dict, Set, List
 
-from Service import receive_message, send_message
-from NodeManager import NodeManager
+from wavenetaplicacion.Service import receive_message, send_message
+from wavenetaplicacion.NodeManager import NodeManager
+from wavenetaplicacion.GeneralParser import WaveNetParser
 
 
 class FileHub:
@@ -19,17 +20,17 @@ class FileHub:
 	_registry: Dict[str, Set[int]] mapea filename a conjunto de node IDs.
 	"""
 
-	def __init__(self) -> None:
+	def __init__(self, node) -> None:
 		self._registry: Dict[str, Set[int]] = {}
 		self._running = False
 		self._thread: threading.Thread = None  # type: ignore
+		self.node = node
 
 	def start(self) -> None:
 		"""
 		Inicializa el nodo mesh y arranca el loop de escucha.
 		"""
-		node = NodeManager.get_node()
-		print(f"[FileHub] Nodo mesh iniciado con ID={(node.my_id())}")
+		print(f"[FileHub] Nodo mesh iniciado con ID={(self.node.my_id())}")
 
 		self._running = True
 		self._thread = threading.Thread(target=self._run_loop, daemon=True)
@@ -42,7 +43,6 @@ class FileHub:
 		self._running = False
 		if self._thread:
 			self._thread.join(timeout=1.0)
-		NodeManager.shutdown()
 
 	def _run_loop(self) -> None:
 		"""
@@ -52,7 +52,7 @@ class FileHub:
 		"""
 		while self._running:
 			try:
-				from_id, msg = receive_message()
+				from_id, msg = receive_message(self.node)
 			except Exception:
 				time.sleep(0.1)
 				continue
@@ -85,6 +85,7 @@ class FileHub:
 				owners = list(self._registry.get(filename, set()))
 				print(f"[FileHub] Consulta '{filename}' de nodo {from_id} -> owners: {owners}")
 				send_message(
+					node=self.node,
 					dest_id=from_id,
 					msg_type='RESPONSE',
 					resource='file_query_response',
@@ -93,10 +94,11 @@ class FileHub:
 			elif mtype == 'REQUEST' and resource == 'list_files':
 			   files = sorted(self._registry.keys())
 			   send_message(
-				   dest_id=from_id,
-				   msg_type='RESPONSE',
-				   resource='list_files_response',
-				   body={'files': files}
+				node=self.node,
+				dest_id=from_id,
+				msg_type='RESPONSE',
+				resource='list_files_response',
+				body={'files': files}
 			   )
 
 	def lookup(self, filename: str) -> List[int]:
@@ -108,7 +110,10 @@ class FileHub:
 
 # python3 FileHub.py
 if __name__ == '__main__':
-	hub = FileHub()
+	parser = WaveNetParser("FileHub: Crea un file hub")
+	parser.parse()
+
+	hub = FileHub(parser.get_node())
 	hub.start()
 	print('[FileHub] Ejecutando. Ctrl+C para detener...')
 	try:

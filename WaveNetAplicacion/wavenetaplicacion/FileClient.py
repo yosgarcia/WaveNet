@@ -9,54 +9,42 @@ Cliente que solicita un fichero:
 """
 import os
 import time
-import argparse
 
-from Service import send_message, receive_message, receive_file
-from NodeManager import NodeManager
-
+from wavenetaplicacion.Service import send_message, receive_message, receive_file
+from wavenetaplicacion.GeneralParser import WaveNetParser
 
 def main():
-	parser = argparse.ArgumentParser(
-		description="FileClient: solicita y descarga un archivo de WaveNet"
-	)
-	parser.add_argument(
-		'--hub-id', '-H',
-		type=int, required=True,
-		help='ID del nodo FileHub'
-	)
-	parser.add_argument(
+	parser = WaveNetParser("FileClient: solicita y descarga un archivo de WaveNet")
+
+	parser.get_parser().add_argument(
 		'--filename', '-f',
 		required=True,
 		help='Nombre del archivo a descargar'
 	)
-	parser.add_argument(
+	parser.get_parser().parser.add_argument(
 		'--out-dir', '-o',
 		default='downloads',
 		help='Directorio donde guardar el archivo'
 	)
-	parser.add_argument(
-		'--port', '-p',
-		type=int, default=None,
-		help='Puerto local para el nodo mesh (evitar choques)'
-	)
-	parser.add_argument(
-		'--node-id', '-n',
-		type=int, default=None,
-		help='ID numérico para este nodo mesh (opcional)'
-	)
-	args = parser.parse_args()
 
-	# Ajustar puerto de escucha si se indicó
-	if args.port:
-		NodeManager.DEFAULT_PORT = args.port
+	parser.get_parser().add_argument(
+		'--hub-id', '-H',
+		type=int, required=True,
+		help='ID del nodo FileHub'
+	)
+
+	parser.parse()
+
+	args = parser.get_args()
 
 	# Inicializar nodo mesh
-	node = NodeManager.get_node(ID=args.node_id)
-	print(f"[FileClient] Nodo mesh iniciado con ID={node.my_id()} en puerto {NodeManager.DEFAULT_PORT}")
+	node = parser.get_node()
+	print(f"[FileClient] Nodo mesh iniciado con ID={node.my_id()}")
 
 	# 1) Preguntar al FileHub quién tiene el archivo
 	print(f"[FileClient] Solicitando file_query a hub {args.hub_id} para '{args.filename}'...")
 	send_message(
+		node=node,
 		dest_id=args.hub_id,
 		msg_type="REQUEST",
 		resource="file_query",
@@ -72,7 +60,7 @@ def main():
 			print(f"[FileClient] Timeout esperando respuesta de file_query_response")
 			return
 		try:
-			from_id, msg = receive_message()
+			from_id, msg = receive_message(node)
 		except Exception as e:
 			# ignorar timeouts internos del mesh
 			if 'Timeout' in str(e):
@@ -92,6 +80,7 @@ def main():
 
 	# 3) Solicitar transferencia al owner
 	send_message(
+		node=node,
 		dest_id=owner,
 		msg_type="REQUEST",
 		resource="file_transfer_init",
@@ -100,7 +89,7 @@ def main():
 
 	# 4) Recibir fichero completo y guardarlo
 	try:
-		saved_path = receive_file(args.out_dir)
+		saved_path = receive_file(node, args.out_dir)
 		print(f"[FileClient] Descarga completa. Guardado en: {saved_path}")
 	except Exception as e:
 		print(f"[FileClient][Error] al recibir fichero: {e}")

@@ -7,11 +7,12 @@ import time
 import threading
 import argparse
 
-from Service import send_message, receive_message, send_file
-from NodeManager import NodeManager
+from wavenetaplicacion.Service import send_message, receive_message, send_file
+from wavenetaplicacion.NodeManager import NodeManager
+from wavenetaplicacino.GeneralParser import WaveNetParser
 
 
-def watch_and_register(hub_id: int, shared_dir: str, interval: float) -> None:
+def watch_and_register(node, hub_id: int, shared_dir: str, interval: float) -> None:
 	"""
 	Escanea shared_dir cada 'interval' segundos y registra archivos nuevos.
 	"""
@@ -23,6 +24,7 @@ def watch_and_register(hub_id: int, shared_dir: str, interval: float) -> None:
 			new = current - seen
 			if new:
 				send_message(
+					node=node,
 					dest_id=hub_id,
 					msg_type="DATA",
 					resource="file_register",
@@ -36,13 +38,13 @@ def watch_and_register(hub_id: int, shared_dir: str, interval: float) -> None:
 			time.sleep(interval)
 
 
-def serve_requests(shared_dir: str) -> None:
+def serve_requests(node, shared_dir: str) -> None:
 	"""
 	Atiende peticiones de transferencia y envía chunks.
 	"""
 	while True:
 		try:
-			from_id, msg = receive_message()
+			from_id, msg = receive_message(node)
 		except Exception as e:
 			if 'Timeout' in str(e):
 				continue
@@ -54,46 +56,39 @@ def serve_requests(shared_dir: str) -> None:
 			filepath = os.path.join(shared_dir, filename)
 			print(f"[FileServiceDaemon] Petición de '{filename}' desde nodo {from_id}")
 			try:
-				send_file(from_id, filepath)
+				send_file(node, from_id, filepath)
 				print(f"[FileServiceDaemon] Envío de '{filename}' completado.")
 			except Exception as e:
 				print(f"[FileServiceDaemon][Error send_file] {e}")
 
 
 def main() -> None:
-	parser = argparse.ArgumentParser(
-		description="Daemon: registro y servicio de archivos en WaveNet"
-	)
-	parser.add_argument(
+	parser = WaveNetParser("Daemon: registro y servicio de archivos en WaveNet")
+	parser.get_parser().add_argument(
 		'--hub-id', '-H', type=int, required=True,
 		help='ID del nodo FileHub'
 	)
-	parser.add_argument(
+	parser.get_parser().add_argument(
 		'--dir', '-d', required=True,
 		help='Directorio compartido'
 	)
-	parser.add_argument(
+	parser.get_parser().add_argument(
 		'--interval', '-t', type=float, default=5.0,
 		help='Segs. entre escaneos'
 	)
-	parser.add_argument(
-		'--port', '-p', type=int, default=None,
-		help='Puerto local para el nodo mesh (evitar choques)'
-	)
-	args = parser.parse_args()
 
-	# Ajustar puerto de escucha
-	if args.port:
-		NodeManager.DEFAULT_PORT = args.port
+	parser.parse()
+
+	args = parser.get_args()
 
 	# Inicializar el nodo mesh (mismo ID de nodo-hub si ya registrado)
-	node = NodeManager.get_node()
-	print(f"[FileServiceDaemon] Nodo mesh ID={node.my_id()} en puerto {NodeManager.DEFAULT_PORT}")
+	node = parser.get_node()
+	print(f"[FileServiceDaemon] Nodo mesh ID={node.my_id()}")
 
 	# Hilo de registro de archivos
 	reg_thread = threading.Thread(
 		target=watch_and_register,
-		args=(args.hub_id, args.dir, args.interval),
+		args=(node, args.hub_id, args.dir, args.interval,),
 		daemon=True
 	)
 	reg_thread.start()
@@ -101,7 +96,7 @@ def main() -> None:
 	# Hilo de atención a peticiones
 	srv_thread = threading.Thread(
 		target=serve_requests,
-		args=(args.dir,),
+		args=(node, args.dir,),
 		daemon=True
 	)
 	srv_thread.start()

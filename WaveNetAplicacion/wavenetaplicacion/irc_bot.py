@@ -6,15 +6,16 @@ Bot IRC para WaveNet:
  - !list	   → lista todos los archivos disponibles
  - !get <file> → descarga el archivo y notifica la ruta local
 """
-import argparse
 import irc.client
 import os
 
-from Service import send_message, receive_message, receive_file
-from NodeManager import NodeManager
+from wavenetaplicacion.Service import send_message, receive_message, receive_file
+from wavenetaplicacion.NodeManager import NodeManager
+from wavenetaplicacion.GeneralParser import WaveNetParser
 
 class WaveNetBot:
-	def __init__(self, reactor, connection, channel, hub_id, out_dir):
+	def __init__(self, node, reactor, connection, channel, hub_id, out_dir):
+		self.node = node
 		self.reactor  = reactor
 		self.conn	 = connection
 		self.channel  = channel
@@ -38,10 +39,10 @@ class WaveNetBot:
 
 		# !list → lista archivos
 		if msg == "!list":
-			send_message(self.hub_id, "REQUEST", "list_files", {})
+			send_message(self.node, self.hub_id, "REQUEST", "list_files", {})
 			# Esperar respuesta
 			while True:
-				from_id, resp = receive_message()
+				from_id, resp = receive_message(self.node)
 				if from_id == self.hub_id and resp.get("resource") == "list_files_response":
 					files = resp.get("body", {}).get("files", [])
 					break
@@ -53,9 +54,9 @@ class WaveNetBot:
 			filename = msg.split(" ",1)[1]
 			conn.privmsg(self.channel, f"{nick}: descargando '{filename}'…")
 			# 1) quién lo tiene
-			send_message(self.hub_id, "REQUEST", "file_query", {"filename": filename})
+			send_message(self.node, self.hub_id, "REQUEST", "file_query", {"filename": filename})
 			while True:
-				from_id, resp = receive_message()
+				from_id, resp = receive_message(self.node)
 				if from_id == self.hub_id and resp.get("resource") == "file_query_response":
 					owners = resp.get("body", {}).get("nodes", [])
 					break
@@ -64,10 +65,10 @@ class WaveNetBot:
 				return
 			owner = owners[0]
 			# 2) pedir transferencia
-			send_message(owner, "REQUEST", "file_transfer_init", {"filename": filename})
+			send_message(self.node, owner, "REQUEST", "file_transfer_init", {"filename": filename})
 			# 3) recibir y guardar
 			try:
-				path = receive_file(self.out_dir)
+				path = receive_file(self.node, self.out_dir)
 				conn.privmsg(self.channel, f"{nick}: completado → {path}")
 			except Exception as e:
 				conn.privmsg(self.channel, f"{nick}: error → {e}")
@@ -77,28 +78,19 @@ class WaveNetBot:
 
 # python3 irc_bot.py   --hub-id <> --node-port 8004   --hub-port 9000   --server 127.0.0.1   --port 6667   --channel "#wavenet"   --nick "WaveBot"   --out-dir "./descargas"
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description="Bot IRC para WaveNet")
-	parser.add_argument("--server",   default="127.0.0.1", help="Host IRC")
-	parser.add_argument("--port",	 type=int, default=6667,   help="Puerto IRC")
-	parser.add_argument("--channel",  default="#wavenet",	help="Canal IRC")
-	parser.add_argument("--nick",	 default="WaveNetBot",  help="Nickname del bot")
-	parser.add_argument("--hub-id",   type=int, required=True,  help="ID del nodo FileHub")
-	parser.add_argument("--node-port",type=int, default=None,   help="Puerto local mesh (evitar choques)")
-	parser.add_argument("--hub-port", type=int, default=None,   help="Puerto mesh-hub (capa3), por defecto 9000")
+	parser = WaveNetParser("Bot IRC para WaveNet")
+	parser.get_parser().add_argument("--server",   default="127.0.0.1", help="Host IRC")
+	parser.get_parser().add_argument("--port",	 type=int, default=6667,   help="Puerto IRC")
+	parser.get_parser().add_argument("--channel",  default="#wavenet",	help="Canal IRC")
+	parser.get_parser().add_argument("--nick",	 default="WaveNetBot",  help="Nickname del bot")
+	parser.get_parser().add_argument("--hub-id",   type=int, required=True,  help="ID del nodo FileHub")
 	parser.add_argument("--out-dir",  default="downloads",   help="Carpeta para descargas")
-	args = parser.parse_args()
-
-	# Ajustar puertos en NodeManager antes de instanciar nodo
-	if args.node_port:
-		NodeManager.DEFAULT_PORT = args.node_port
-	else:
-		NodeManager.DEFAULT_PORT = 1
-	if args.hub_port:
-		NodeManager.HUB_PORT = args.hub_port
+	parser.parse()
+	args = parser.get_args()
 
 	# Crear y arrancar el nodo mesh
-	node = NodeManager.get_node()
-	print(f"[irc_bot] Nodo mesh ID={node.my_id()} en puerto {NodeManager.DEFAULT_PORT}")
+	node = parser.get_node()
+	print(f"[irc_bot] Nodo mesh ID={node.my_id()}")
 
 	# Crear conexión IRC
 	reactor   = irc.client.Reactor()
@@ -106,6 +98,7 @@ if __name__ == '__main__':
 
 	# Instanciar bot y arrancar
 	bot = WaveNetBot(
+		node = node,
 		reactor   = reactor,
 		connection= connection,
 		channel   = args.channel,

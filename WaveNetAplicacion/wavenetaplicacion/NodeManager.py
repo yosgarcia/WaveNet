@@ -1,8 +1,9 @@
 # NodeManager.py
 
 from typing import Optional
+from wavenetcore.WaveNetAdaptors import WaveNetBasicMeshHub
 from wavenetcore.WaveNetAdaptors import WaveNetBasicMeshNode
-from wavenetcore.WaveNetProtocols import LocalProtocol
+from wavenetcore.WaveNetProtocols import LocalProtocol, IPProtocol, SoundProtocol
 
 class NodeManager:
 	"""
@@ -10,35 +11,33 @@ class NodeManager:
 	Arranca un nodo local y se conecta/join al mesh‐hub automáticamente.
 	"""
 
-	_instance: Optional[WaveNetBasicMeshNode] = None
-	DEFAULT_PORT: int = 8000
-	HUB_PORT:	int = 9000
+	encrypt = False
+	nodes = []
 
-	@classmethod
-	def get_node(cls, ID: int = None) -> WaveNetBasicMeshNode:
-		"""
-		Devuelve la instancia única de WaveNetBasicMeshNode.
-		Si no existe, la crea con el protocolo LocalProtocol en DEFAULT_PORT,
-		opcionalmente usando el ID que se pase, la arranca, conecta al hub y hace join.
-		"""
-		if cls._instance is None:
-			# 1) Arrancar nodo local con ID opcional
-			protocol = LocalProtocol(port=cls.DEFAULT_PORT)
-			cls._instance = WaveNetBasicMeshNode([protocol], ID=ID)
-			cls._instance.run()
+	def get_hub(protocols):
+		hub = WaveNetBasicMeshHub(protocols, encrypt=encrypt)
 
-			# 2) Conectar y join al mesh‐hub de capa 3
-			hub_proto = LocalProtocol(port=cls.DEFAULT_PORT)
-			cls._instance.connect(0, hub_proto, str(cls.HUB_PORT))
-			cls._instance.join()
+		hub.run()
 
-		return cls._instance
+		NodeManager.nodes.append(hub)
 
-	@classmethod
-	def shutdown(cls) -> None:
-		"""
-		Detiene y elimina la instancia única del nodo.
-		"""
-		if cls._instance is not None:
-			cls._instance.kill()
-			cls._instance = None
+		return hub
+
+	def get_node(ID=None, protocols, connections):
+		node = WaveNetBasicMeshNode(protocols, ID=ID, encrypt=encrypt)
+
+		node.run()
+
+		for ID, protocol, data in connections:
+			if type(protocol) == LocalProtocol: node.connect(ID, protocol, str(data))
+			if type(protocol) == IPProtocol: node.connect(ID, protocol, IPProtocol.ip_to_json(data[0], data[1]))
+			if type(protocol) == SoundProtocol: node.connect(ID, protocol, data)
+
+		node.join()
+
+		NodeManager.nodes.append(node)
+
+		return node
+	
+	def shutdown():
+		for node in nodes: node.kill()

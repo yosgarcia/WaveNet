@@ -75,6 +75,7 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 		"""
 
 		assert ID is None or type(ID) == int
+		assert ID != 0
 		assert type(protocols) == list
 		assert len(protocols) > 0
 		for protocol in protocols: assert isinstance(protocol, prot.Protocol)

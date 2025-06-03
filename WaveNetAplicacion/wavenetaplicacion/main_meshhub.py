@@ -6,13 +6,17 @@ Arranca un WaveNetBasicMeshHub escuchando en el puerto 9000.
 """
 from wavenetcore.WaveNetAdaptors import WaveNetBasicMeshHub
 from wavenetcore.WaveNetProtocols import LocalProtocol
+from wavenetaplicacion.GeneralParser import WaveNetParser
 import time
 
 def main():
-	PORT = 9000
-	hub = WaveNetBasicMeshHub([LocalProtocol(port=PORT)])
-	print(f"[MeshHub] Arrancando en puerto {PORT}...")
-	hub.run()  # Inicializa listeners en background
+
+	parser = WaveNetParser("MeshHub: Crea una instancia del MeshHub", is_hub=True)
+	parser.parse()
+
+	hub = parser.get_node()
+
+	print(f"[MeshHub] Arrancando..")
 
 	# Mantener el proceso vivo
 	print("[MeshHub] Ejecutando. Ctrl+C para detener...")
