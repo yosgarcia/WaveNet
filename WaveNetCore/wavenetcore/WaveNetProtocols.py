@@ -6,6 +6,7 @@ from threading import Thread, Event, Lock
 from wavenetcore.WaveNetPacketeering import *
 from dispositivo_wavenet.dispositivo_wavenet import DispositivoWaveNet as wn
 import logging
+import time
 
 class ProtocolType(Enum):
 	"""
