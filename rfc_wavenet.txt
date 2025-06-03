@@ -1,0 +1,941 @@
+Network Working Group                                       S. Ramos
+Request for Comments: XXXX                                 Y. García
+Category: Experimental                                     M. Latysh
+                                                          J. Cordero
+ITCR
+Mayo 2025
+
+                Protocolo de Comunicación Acústica
+                WaveNet
+
+Status of this Memo
+
+This memo defines an Experimental Protocol for the Internet community.
+It does not specify an Internet standard of any kind. Distribution of
+this memo is unlimited.
+
+Abstract
+
+This document specifies the first three layers of a custom network 
+protocol, WaveNet. The design supports packet-based communication 
+between distributed nodes, optional encryption, and mesh-based network 
+structures. The protocol is experimental and under development.
+
+
+Table of Contents
+
+1.  Introduction 
+2.  Terminology 
+3.  Layer 1: Acoustic Physical Layer
+    3.1 Frame Format
+    3.2 Frequency Allocation 
+    3.3 Frame Communication
+    3.4 Message Communication
+    3.5 Considerations and Common Issues
+4.  Layer 2: 
+    4.1 Packets
+    4.2 Internal Protocols
+    4.3 Nodes
+5.  Layer 3:
+    5.1 Mesh Protocol
+6.  Layer 4:
+    6.1  Formato de Mensajes                       
+    6.2  Comandos y Respuestas                              
+    6.3  Comportamiento del FileHub                           
+    6.4  Comportamiento del FileServiceDaemon                  
+    6.5  Comportamiento del FileClient                          
+    6.6  Comportamiento del Bot IRC                             
+    6.7  Ejemplo de Interacción (ASCII)                       
+    6.8  Consideraciones Finales                                
+7.  Security Considerations
+8.  IANA Considerations
+5.  References
+
+--------------------------------------------------------------------
+
+1. Introduction
+
+    El presente documento forma parte de un sistema de comunicación
+    modular por capas, donde se utiliza la transmisión acústica de
+    datos como medio. Este RFC describe la capa física (Capa 1), la
+    cual define cómo se estructuran, codifican y transmiten las tramas
+    de datos mediante sonidos. 
+
+    Además, este RFC incluye la descripción de la capa 2 y 3 donde, la 
+    capa 2, responsable del enrutamiento P2P de paquetes y el cifrado; 
+    y la capa 3, que implementa un protocolo de malla descentralizado 
+    con un nodo central. El protocolo utiliza codificaciones en JSOn, 
+    admite cifrado híbrido RSA/AES, y contiene mecanismos para consultas,
+    incorporación de nodos y otras operaciones dentro de una red mesh.
+
+    La capa 4 corresponde a la aplicación encargada de descubrir y
+    transferir archivos entre los nodos de la red. Implementa un
+    servicio de registro centralizado (FileHub) que mantiene un índice
+    de archivos disponibles y coordina con los FileServiceDaemon en cada
+    nodo para fragmentar, codificar en Base64 y enviar los datos. Un
+    cliente (FileClient) consulta al FileHub para localizar propietarios
+    de un archivo y luego obtiene los fragmentos desde el nodo respectivo.
+    Opcionalmente, un bot IRC expone estas funciones a redes clearnet,
+    permitiendo listar y descargar archivos mediante comandos públicos.
+
+2. Terminology
+
+    This section defines terminology used throughout the protocol 
+    specification.
+
+    - Emisor: dispositivo que transmite los datos.
+    
+    - Receptor: dispositivo que escucha y decodifica los datos.
+    
+    - Trama: paquete de datos con formato estructurado.
+    
+    - Byte: unidad de 8 bits.
+    
+    - Ping: señal de inicio o confirmación de comunicación.
+    
+    - EOF: señal de fin de trama.
+    
+    - Checksum: verificación de integridad.
+    
+    - Flood Fill Mesh: A mesh structure where data is propagated from 
+    a source to all nodes in the network.
+    
+    - Node [Transport Layer]: A process or instance that operates at 
+    the transport layer (Layer 2) and is responsible for packet 
+    routing (flood-fill). Nodes are responsible for sending and 
+    receiving packets, possibly over internal or encrypted channels.
+
+    - Link: A communication abstraction between two nodes. A link is 
+    typically a thread-safe, queue-based connection implemented over 
+    sockets or internal channels.
+
+    - MeshNode: A Layer 3 entity responsible for managing query and 
+    reply packets in a dynamic mesh network.
+
+    - MeshHub: A semi-centralized node that maintains a registrar of 
+    all present MeshNodes in the network.
+
+    - Internal Protocols: Protocol classes used to abstract 
+    communication pathways between nodes. These may not involve 
+    encryption or actual networking layers.
+
+    - Packet: A basic unit of communication, serialized as a JSON 
+    dictionary and containing metadata and payload fields. Packets are 
+    exchanged between nodes and processed according to their type.
+
+    - Encrypted Packet: A packet whose contents (especially the body) 
+    are encrypted using public-key cryptography.
+
+    - Layer 2 (Transport Layer): The intermediate layer responsible 
+    for encrypted and deduplicated delivery between nodes as well as 
+    flood routing. It abstracts direct messaging and prepares packets 
+    for Layer 3 forwarding.
+
+    - Layer 3 (Mesh Layer): The layer that manages the protocol between 
+    the MeshNodes and the MeshHub.
+
+    - JSON Dictionary: The canonical serialization format for packets 
+    and general data structure in this protocol. All packets are sent as 
+    `dict`-like JSON objects with required fields.
+
+    - RSA Encryption: A form of asymmetric cryptography used to encrypt 
+    packet payloads. Each node has a keypair, and messages are encrypted 
+    using the recipient’s public key.
+
+    - Public Key: A long-term identifier used to encrypt messages to a 
+    node and verify that node’s signatures.
+
+    - Private Key: A confidential cryptographic key held by each node to 
+    decrypt messages and produce signatures.
+
+    - Key Pair: The combination of a public and private key associated 
+    with a node. Nodes must securely manage key pairs to participate in 
+    encrypted communication.
+
+    - Message Hash: A unique identifier by hashing implicitly attached 
+    to each packet to support deduplication and tracking.
+
+    - Deduplication Cache: A temporary storage of recent message IDs 
+    used to suppress repeated forwarding or processing of duplicate 
+    packets.
+
+    - Propagating/Forwarding: The act of transmitting a received packet 
+    to one or more adjacent nodes, based on query propagation logic.
+
+    - Protocol Identifier: A field or implicit trait in a link that 
+    indicates the protocol or method used for handling the data.
+
+    - FileHub: Componente central que mantiene un índice en memoria de 
+    archivos disponibles en la red y responde a consultas de clientes.
+  
+    - FileServiceDaemon: Proceso en cada nodo que vigila una carpeta local, 
+    registra nuevos archivos en el FileHub y atiende solicitudes de descarga 
+    fragmentada.
+    
+    - FileClient: Cliente que envía peticiones al FileHub para obtener la 
+    lista de dueños de un archivo, luego se conecta al nodo propietario 
+    para recibir fragmentos en Base64 y reconstruir el fichero.
+    
+    - Chunk (Fragmento): Bloque de datos de tamaño fijo (hasta 10 KiB) 
+    codificado en Base64 y enviado secuencialmente durante la transferencia 
+    de un archivo.
+    
+    - Owner: Identificador de un nodo que actualmente aloja y puede servir 
+    un archivo solicitado, tal como lo devuelve el FileHub en la respuesta 
+    a FILE_QUERY.
+    
+    - Digest: Resumen criptográfico (SHA-256) incluido en el mensaje FILE_END 
+    para verificar la integridad del archivo completo tras reensamblar todos 
+    los fragmentos.
+    
+    - Bot IRC: Cliente IRC que se conecta a un canal público, recibe comandos 
+    (p.ej. !list, !get), traduce esas peticiones a operaciones de FileClient 
+    y publica resultados en el chat.
+
+
+3. Layer 1: Acoustic Physical Layer
+
+    El protocolo define una comunicación unidireccional o bidireccional
+    mediante sonido. Un emisor convierte bytes en frecuencias, las emite
+    junto con silencios, y el receptor escucha, interpreta y responde.
+
+3.1 Frame Format
+
+    Cada trama tiene un tamaño máximo de 128 bytes, distribuidos de la
+    siguiente manera:
+
+        [versión][MAC_org][MAC_dest][tipo][longitud][payload][checksum][eof]
+
+    - versión: 1 byte
+    - MAC_org: 6 bytes
+    - MAC_dest: 6 bytes
+    - tipo: 1 byte
+    - longitud: 1 byte
+    - payload: 0–107 bytes
+    - checksum: 4 bytes
+    - eof: señal final (frecuencia especial)
+
+    Tipos definidos para la versión 1: 
+        - TIPO_PING = 0x01 
+        - TIPO_TRAMA_ARCHIVO_INFO = 0x02 
+        - TIPO_TRAMA_ARCHIVO = 0x03 
+        - TIPO_TRAMA_FINAL_ARCHIVO = 0x04 
+        - TIPO_ERROR = 0x05 - TIPO_OK = 0x06
+
+    Parametros definidos para la sinconización
+        - VERSION = 0x01
+        - TIME_TO_SAY_OK = 10 segundos
+        - TIMES_TO_COMUNICATE_OK = 3
+        - TIME_TO_SAY_128_BYTES = 113 segundos
+        - TIMES_TO_COMUNICATE_128_BYTES = 3
+
+
+3.2 Frequency Allocation
+
+    - BASE_FREQ = 550 Hz (para el byte 0)
+    - FREQ_STEP = 70 Hz
+    (byte N se representa como BASE_FREQ + N \* FREQ_STEP)
+
+    Frecuencias especiales: 
+        - SILENCE_FREQ = 200 
+        - PING_FREQ = 250 Hz 
+        - FREQ_EOF = 300 Hz
+
+3.3 Frame Communication
+
+    Proceso de emisión de trama única:  
+        1. Emitir PING_FREQ.  
+
+        2. Emitir SILENCE_FREQ.  
+
+        3. Emitir cada byte del mensaje convertido a su frecuencia 
+        correspondiente, intercalando silencios entre bytes para 
+        evitar superposición.  
+
+        4. Emitir FREQ_EOF.
+
+    Proceso del escucha de trama única: 
+        1. Recibir un tiempo ajustable TIMEOUT, que suele ser
+        TIME_TO_SAY_128 bytes más un margen de tolerancia. 
+
+        2. Espera hasta escuchar PING_FREQ 
+
+        3. Alterna entre frecuencias de silencio y de bytes, 
+        decodificando cada byte recibido 
+
+        4. Repite este proceso hasta alguna de estas condiciones 
+            - Escuchar FREQ_EOF 
+            - Pase TIMEOUT segundos y no escuche ningun ping 
+            - Pase TIMEOUT segundos desde que escuchó el ping inicial
+
+    Proceso de comunicación de una trama: 
+        1. Emitir la trama 
+
+        2. Se intenta TIMES_TO_COMUNICATE_OK veces escuchar un PING_FREQ 
+        en 3 segundos
+            - Si se escucha un PING_FREQ del receptor, se indica que la 
+            trama fue recibida correctamente, y se termina este ciclo
+            - Si no se escucha un PING_FREQ en todo el ciclo, se indica 
+            que la trama no fue recibida correctamente
+
+    Proceso de recepción de una trama: 
+        1. Se escucha una trama 
+
+        2. Se valida la trama de la siguiente manera 
+            - Se verifica que su checksum sea válido 
+            - Se verifica que su destinatario sea mi MAC ADDRESS 
+            - Si no es una trama TIPO_TRAMA_ARCHIVO_INFO, se verifica que 
+            su origen sea el indicado inicialmente 
+
+        3. Si la trama es valida, se emite un PING 2 veces y se indica 
+        la recepción correcta, si no, se repite el proceso 
+        TIMES_TO_COMUNICATE_128_BYTES veces
+
+3.4 Message Communication
+
+    Proceso de emisión de mensaje: 
+        1. El emisor recibe: 
+            - MAC ADDRESS de sí mismo 
+            - MAC ADDRESS del destinatario 
+            - El mensaje a transmitir como bytes  
+
+        2. Divide el mensaje en bloques de máximo 107 bytes 
+
+        3. Crea la trama inicial del tipo TIPO_TRAMA_ARCHIVO_INFO, cuyo 
+        payload comienza con 4 bytes que indican la cantidad total de 
+        tramas a emitir, seguido opcionalmente por un nombre o 
+        descripción del mensaje 
+
+        4. El emisor comunica la trama de información 
+
+        5. El emisor comunica cada trama con la información del mensaje
+
+    Si no se llega a cumplir correctamente el proceso de comunicación 
+    correcta del mensaje, se cierra la conexión
+
+    Proceso de recepción de mensaje: 
+        1. El receptor recibe la trama de TIPO_TRAMA_ARCHIVO_INFO inicial 
+
+        2. El receptor decodifica esta trama y recibe las tramas del 
+        mensaje 
+
+        3. El receptor junta los payloads de las tramas del mensaje y lo 
+        retorna
+
+    Si no se llega a cumplir correctamente el proceso de recepción del 
+    mensaje, se cierra la conexión.
+
+
+3.5 Considerations and Common Issues
+    - El uso de silencio entre bytes es crucial para evitar mezcla de 
+    señales. 
+
+    - Se podrían recibir bytes erróneos por ruido, aunque el checksum 
+    reduce el riesgo de aceptar tramas inválidas.
+
+
+
+4. Layer 2:
+
+4.1 Packets
+
+    Two types of packets are managed: normal packets and encrypted 
+    packets. Normal packet possess the following fields:
+        - "enc" : A boolean indicating the state of encryption of the 
+        packet. In this case, it should be false.
+
+        - "src" : The source id of the node that sent this packet. 
+        Could be -1 signaling that nobody claims this packet as their 
+        own (otherwise a natural number).
+
+        - "dest" : The destination node id (natural number) which the 
+        packet is destined for.
+
+        - "mtype" : The message type, a string that describes the 
+        general intention of the packet being sent.
+
+        - "body" : The body of the message, an ASCII string where is 
+        main information is contained.
+
+        - "timestamp" : The date of creation of the packet, also a 
+        string. Only formed upon the message being sent from the upper 
+        layers of abstraction.
+
+    On the other hand, encrypted packets only possess two fields:
+        - "enc" : A boolean indicating the state of encryption of 
+        the packet. In this case, it should be true.
+
+        - "meta" : A string that contains the packets metadata.
+
+        - "body" : An ASCII string that contains the main information of 
+        the packet.
+
+    All packets are transferred as json dictionaries embedded in strings 
+    [RFC 8259]. A packet has two forms: its abstract dictionary form and 
+    its formed version when it is concretely represented as a json string. 
+    The two forms share the same field names.
+
+    In the case of encrypted packets, the body is a formed standard packet 
+    that is encrypted with an AES key [FIPS 197]. On the other hand, the 
+    metadata is encrypted with the destination's public key using RSA 
+    [RFC 3447]. The metadata, before being encrypted, corresponds to a json 
+    string that represents a table of the following values:
+        - "decrypted" : A boolean that indicates if the RSA decryption of 
+        the metadata was successful. It should always be equal to true.
+
+        - "key" : The AES key transferred in base64 encoding [RFC 4648].
+
+        - "nonce" : The nonce generated while encrypting the body with the 
+        corresponding AES key stored in base64 encoding.
+
+    Given the correct RSA public key and a packet, you can generate the 
+    encrypted version of that packet. Given the correct RSA private key 
+    and an encrypted packet, you can generate the original version of the 
+    non encrypted packet.
+
+    For future versions of the protocol, the fields are expected to evolve. 
+    As an example, "enc" could become "enc2".
+
+
+4.2 Internal Protocols
+
+    WaveNetCore supports three types of internal protocols: connection 
+    over the loopback interface of the device [RFC 1122], connection over 
+    any other IP interface of the machine [RFC 791], and WaveNetSound.
+
+    Each protocol supports receiving a whole packet at the same time and 
+    sending a whole packet at the same time. To that extent, each protocol 
+    offers a connection address that the system employing the protocol can 
+    distribute to form connection chains.
+
+    The public versions (ie, connection addresses) of each protocol are the 
+    following:
+        - Loopback: port number. It is a numeric string.
+
+        - IP Interfaces: interface IP and port number. This should be a 
+        string json dictionary where the key "IP" specifies the ip-address 
+        as a string and the key "port" specifies the port as an integer type.
+        
+        - WaveNetSound: WaveNetSound MAC Address. It is a string.
+
+    All of the protocols send over ASCII data [RFC 20], due to which 
+    base64 encoding is recommended for transfer of binary data.
+
+    Additionally, all protocols have reference names that can be used to 
+    refer to protocol selection for higher level protocols:
+        - Loopback: "LOCAL"
+
+        - IP Interfaces: "IP"
+
+        - WaveNetSound: "SOUND"
+    
+    For future versions of the protocol, it is expected that the 
+    corresponding name also changes. As an example, instead of "LOCAL", 
+    it could become "LOCAL2".
+
+
+4.3 Nodes
+
+    Each node has an associated ID, private key, neighbors, and available 
+    protocols.
+
+    Upon receiving a packet and processing it, it's the moral duty of the 
+    node to continue propagating the packet among its neighbors (to avoid 
+    infinite cycles, nodes may choose to not process a packet they have 
+    already received). Additionally, the higher level protocol should get 
+    the final call of where a message should be propagated or not.
+
+    Upon receiving a packet through one of the node's associated protocol 
+    interfaces, the node must check the type of packet it has received 
+    (encrypted or not). If the packet is encrypted, the node must try to 
+    decrypt the metadata using its private RSA key. If it succeeds in 
+    decrypting the metadata, it can then procede to decrypt the encrypted 
+    body to obtain the original packet. Once that is done, the node must 
+    check the destination of the packet. If the destination of the packet 
+    does not correspond to the ID of the node, the node is expected to 
+    continue propagating the packet in the same way its interface had 
+    received it (so if the node's protocol interface provided it with an 
+    unencrypted packet, the node propagates the very same packet; if the 
+    node's protocol interface had provided it with an encrypted packet, the 
+    node must propagate that very same encrypted version of the packet even 
+    if it managed to decrypt it). On the other hand, if the destination and 
+    the node's ID coincide, the node is to deliver the packet to the parent 
+    protocol layer, which states whether the packet should be propagated or 
+    not. After that, if the packet is to be transmitted, the same restrictions 
+    apply as before.
+
+
+5. Layer 3:
+
+5.1 Mesh Protocol
+
+    The mesh protocol manages two general types of entities: MeshHubs and 
+    MeshNodes. Both interface with the Node structure from the previous 
+    section as parents. This means that each time the mesh protocol sends 
+    a packet, it must do so through the node structure. Additionally, all 
+    packets that it receives should be obtained from the node structure as 
+    well. Each network should only contain one MeshHub whose numeric id is 0. 
+    All MeshNodes can use arbitrary numeric ids (positive integers). These 
+    ids should be provided to the internal node structure. Additionally, the 
+    RSA keys for each entity are only used by the internal node structure.
+
+    The mesh protocol entities process two generalized types of packets: 
+    queries and responses.
+
+        - Upon making a query, the entity is expected to await in a parallel 
+        fashion for a response IF that particular response requires a 
+        response. Naturally, there should be a timeout set for cases when 
+        no response is generated (such as in the case of data corruption, 
+        network disconnection, erroneous protocol implementation, among 
+        others).
+
+        - Upon receiving a query, the corresponding entity must process it 
+        and determine what to make of it (possibly sending a response).
+
+        - Upon receiving a response, the corresponding entity must find 
+        the process that was awaiting it. Under some circumstances, 
+        various processes could await the same type of response as the only 
+        criteria for awaiting a response is the type of message to await and 
+        the responder's id.
+
+    All entities should be able to send the following query types to other 
+    entities in the network:
+
+        - "ping" : send a "ping" type packet to the provided destination 
+        that you want to ping and await the response from the targeted 
+        entity and a message type of "pong". If the process reaches timeout, 
+        the "ping" request failed. Otherwise, it was successful.
+
+    The MesHub does not send out other queries.
+
+    The MeshNodes additionally should be able to send the following query 
+    types to other entities:
+
+        - "connect" : creates a connection to other entities in the network. 
+        The sent out packet must specify the destination id, the message type 
+        as "connect", and a message body with the following json dictionary 
+        format:
+
+            ```
+            {
+                "protocol" : string_type
+                "dest" : string_type
+            }
+            ```
+
+    The "protocol parameter should specify the type of internal protocol 
+    used for opening the connection with the other entity and "dest" should 
+    specify the connection parameters detailed as string in the internal 
+    protocols section. This packet can be encrypted but isn't expected to 
+    be. No response should be awaited.
+
+        - "join" : connects the node to the network. The sent out packet 
+        must set the destination as 0 (for the MeshHub), the message type 
+        as "join", and a message body with the following json dictionary 
+        format:
+
+            ```
+            {
+                "id" : integer_type
+                "pem" : string_type
+            }
+            ```
+
+    The "id" parameter should specify the id of the current MeshNode and 
+    "pem" should be the public RSA key in PEM format (as a string) 
+    [RFC 7468] that the internal node structure provides from its private 
+    RSA key. This packet can be encrypted but isn't expected to be. No 
+    response should be awaited.
+
+        - "request" : requests the public RSA key in PEM format of a 
+        particular MeshNode. The send out packet must set the destination 
+        as 0 (for the MeshHub), the message type as "request", and a 
+        message body with the following json dictionary format:
+
+            ```
+            {
+                "id" : integer_type
+            }
+            ```
+
+    The "id" parameter should specify the id of the MeshNode whose key we 
+    want to obtain. This packet can be encrypted. Then, a response should 
+    be awaited from the MeshHub with packet type "answer". If timeout is 
+    reached, then the query failed. Otherwise, the body should have the 
+    following json dictionary format:
+
+        ```
+        {
+            "id" : integer_type
+            "pem" : string_type
+        }
+        ```
+
+    The "id" key should specify the id of the MeshNode whose public key we 
+    want to obtain, whilst the key "pem" should contain the public RSA key 
+    of the solicited MeshNode in PEM format. From the given pem, you can 
+    obtain the corresponding public RSA key of the target node.
+
+        - "data" : sends a general message to some other node. The sent out 
+        packet must specify the destination id, the message type as "data", 
+        and the message body as an arbitrary string. No response should be 
+        awaited.
+
+    Separately, each MeshNode should be able to await a "data" packet either 
+    from a specific node or from any node.
+
+    It should be noted that the MeshProtocol in the case of all entities 
+    always tells the node structure to continue propagating the packet 
+    EXCEPT upon receiving a "connect" query. Additionally, after executing 
+    the join query, the MeshNode is expected to execute a request for the 
+    public RSA key of the MeshHub.
+
+    Next, all entities should process the following received packet types 
+    in the following manner:
+
+        - "ping" : send a "pong" type packet back to its source. The new 
+        source should coincide with the current entities id. The response 
+        can be encrypted.
+
+        - "pong" : resume the processes awaiting the "pong" from that 
+        particular source.
+        
+        - "connect" : process the packet with the following message body 
+        json dictionary structure (as seen before):
+
+            ```
+            {
+                "protocol" : string_type
+                "dest" : string_type
+            }
+            ```
+
+    The "protocol parameter should specify the type of internal protocol 
+    used for opening the connection with the other entity and "dest" 
+    should specify the connection parameters detailed as string in the 
+    internal protocols section. Here, the entity should determine to 
+    protocol to use and it should attempt to create a neighbor link for 
+    the internal node structure by specifying the determined protocol and 
+    inputing the provided destination "dest".
+
+    Additionally, the MeshHub should process the following received packet 
+    types in the following manner:
+
+        - "join" : process the packet with the following message body json 
+        dictionary structure (as seen before):
+
+            ```
+            {
+                "id" : integer_type
+                "pem" : string_type
+            }
+            ```
+
+    The "id" parameter should specify the id of the joining MeshNode and 
+    "pem" should be the public RSA key in PEM format (as a string) of the 
+    joining node. Upon receiving this query, the MeshHub uses a 
+    first-come-first-serve basis for determining who gets to use an id. 
+    Then, if the current id has not been acquired, the MeshHub associates 
+    the provided PEM string to that id. Otherwise, the query fails.
+
+        - "request" : process the packet with the following message body 
+        json dictionary structure (as seen before):
+
+            ```
+            {
+                "id" : integer_type
+            }
+            ```
+
+    The "id" parameter should specify the id of the MeshNode whose key is 
+    being requested. From this, the MeshHub should look up any joined node 
+    with a matching id. If it does not find it, the response fails. 
+    Otherwise, the associated public RSA key is sent as a packet with the 
+    destination set to the original source, the message type as "answer", 
+    and a message body with the following json dictionary format 
+    (as seen before):
+
+        ```
+        {
+            "id" : integer_type
+            "pem" : string_type
+        }
+        ```
+
+    The "id" key should specify the id of the MeshNode whose public key 
+    is begin requested, whilst the key "pem" should contain the public 
+    RSA key of the solicited MeshNode in PEM format.
+
+    Finally, the MeshNodes should process the following received packet 
+    types in the following manner:
+
+        - "answer" : resume the process awaiting the "answer" from that 
+        particular source (the MeshHub).
+
+        - "data" : resume the process awaiting the "data" from that 
+        particular source or from anybody if no process awaiting that 
+        source in particular is present.
+
+    For future versions of the Mesh Protocol, it is expected that the 
+    message type names evolve as well. As an example, "join" could 
+    become "join2".
+
+
+6. Layer 4
+
+   Esta sección describe el protocolo y los comportamientos de los
+   componentes de Capa 4 (wavenetaplicacion) para el descubrimiento y
+   transferencia de archivos. Los nodos ejecutan un *FileHub* (tracker
+   central), un *FileServiceDaemon* (ofertante de archivos), un *FileClient*
+   (solicitante de descargas) y, opcionalmente, un *bot IRC* para exponer
+   el servicio a una red clearnet. Todos los mensajes se envían como JSON
+   en ASCII puro, con campos obligatorios y un cuerpo ("body") que
+   puede contener metadatos o fragmentos codificados en Base64.
+
+6.1  Formato de Mensajes
+  
+   Cada mensaje JSON enviado por Capa 4 tiene al menos estos campos:
+   
+   - **"type"**: Token ASCII que identifica la acción o comando.  
+   - **"resource"**: Nombre del archivo o identificador de control.  
+   - **"body"**: Diccionario JSON con datos específicos (por ejemplo,
+     datos de fragmento, lista de dueños, sumario de error).
+
+   Opcionalmente, para transferencia de archivos:
+   - "chunk_id": Entero que indica la posición de este fragmento.  
+   - **"chunk_total"**: Total de fragmentos que componen el archivo.  
+   - **"data"**: Cadena ASCII con el fragmento codificado en Base64.  
+   - **"digest"**: SHA-256 del archivo completo (solo en el comando final).
+
+   Ejemplo genérico:
+     {
+       "type": "FILE_CHUNK",
+       "resource": "prueba.txt",
+       "body": {
+         "chunk_id": 3,
+         "chunk_total": 10,
+         "data": "QmFzZTY0RW5jb2RlZFN0cmluZw=="
+       }
+     }
+
+6.2  Comandos y Respuestas
+ 
+   A continuación, se resumen los tipos de mensaje más relevantes:
+
+   FILE_REGISTER    Daemon → Hub   • Anunciar disponibilidad de un archivo  
+   FILE_QUERY       Cliente → Hub  • Solicitar lista de dueños para un archivo  
+   FILE_LIST        Cliente → Hub  • Solicitar catálogo completo de archivos  
+   FILE_REQUEST     Cliente → Owner• Iniciar transferencia de un archivo  
+   FILE_CHUNK       Owner → Cliente• Enviar fragmento en Base64  
+   FILE_END         Owner → Cliente• Marcar fin de transferencia e incluir digest  
+   ERROR            Cualquiera     • Informar condición de fallo
+
+   El Hub responde a FILE_REGISTER con:
+     { "type": "OK", "resource": "-", "body": {"code":200,"msg":"REGISTERED"} }
+   o, en caso de error:
+     { "type": "ERROR", "resource": "-", "body": {"code":409,"msg":"CONFLICT"} }
+
+   A FILE_QUERY devuelve:
+     { "type": "OWNERS", "resource": "prueba.txt",
+       "body": {"owners": ["NodeA", "NodeB"]} }
+   Si no hay propietarios:
+     { "type": "ERROR", "resource": "prueba.txt",
+       "body": {"code":404,"msg":"NOT-FOUND"} }
+
+6.3  Comportamiento del FileHub
+   
+   1. Al iniciar, carga índice vacío:  
+        file_index = { }  // diccionario: nombre → conjunto de node_id
+
+   2. Escucha en un puerto TCP (p.ej. 9000) mensajes JSON entrantes.
+   3. Al recibir **FILE_REGISTER** desde un *FileServiceDaemon*:
+      - Extrae "resource" (nombre del archivo) y `body["owner"]`.
+      - Agrega owner a file_index[nombre], creando la entrada si no existe.
+      - Replica la respuesta OK al daemon.
+   4. Al recibir **FILE_QUERY** o **FILE_LIST** desde un *FileClient* o bot IRC:
+      - Si FILE_QUERY, busca file_index[recurso] y devuelve la lista de dueños.
+      - Si FILE_LIST, envía todo el catálogo actual con todos los archivos.
+   5. Cada cierto intervalo (TTL), remueve entradas cuyo owner no se haya
+      refrescado con un nuevo FILE_REGISTER (implementación recomendada: 900 s).
+
+6.4  Comportamiento del FileServiceDaemon
+  
+   1. Inicia dos hilos independientes:
+      - **Watcher**:  
+        • Monitorea la carpeta `./carpeta_compartida/` cada N segundos  
+        • Detecta archivos nuevos y eliminados comparando un conjunto local  
+        • Por cada nuevo archivo: envía **FILE_REGISTER** al Hub con:
+           {
+             "type": "FILE_REGISTER",
+             "resource": "<nombre>",
+             "body": {"owner": "<ID_Daemon>"}
+           }
+      - **Servidor**:  
+        • Escucha en un puerto TCP (p.ej. 8002) peticiones entrantes de
+          **FILE_REQUEST**.
+        • Cuando llega un **FILE_REQUEST** con recurso X:  
+            – Lee el archivo X en fragmentos de hasta 10 KiB.  
+            – Por cada fragmento, envía un **FILE_CHUNK** al cliente
+              solicitante:
+                 {
+                   "type": "FILE_CHUNK",
+                   "resource": "X",
+                   "body": {
+                     "chunk_id": i,
+                     "chunk_total": T,
+                     "data": "<BloqueBase64>"
+                   }
+                 }
+            – Tras el último fragmento, envía **FILE_END** con SHA-256:
+                 {
+                   "type": "FILE_END",
+                   "resource": "X",
+                   "body": {"digest": "<SHA256Hex>"} 
+                 }
+   2. Si ocurre un error de E/S, devuelve **ERROR** al cliente con código 500.
+
+6.5  Comportamiento del FileClient
+  
+   1. Al ejecutarse con “get <archivo>”, abre conexión con el Hub y envía:
+        { "type": "FILE_QUERY", "resource": "<archivo>", "body": {} }
+   2. Si recibe **OWNERS** con lista vacía → aborta con mensaje “No existe”.
+   3. Si hay dueños, toma el primero (p.ej. “NodeA”) y abre nueva
+      conexión TCP al puerto del *FileServiceDaemon* de ese nodo.
+   4. Envía **FILE_REQUEST**:
+        { "type": "FILE_REQUEST", "resource": "<archivo>", "body": {} }
+   5. Recibe secuencia de **FILE_CHUNK**:
+      - Almacena cada bloque en búfer local: chunks[chunk_id] = data.
+   6. Al recibir **FILE_END**, reconstruye el archivo en `./descargas/`:
+      - Ordena bloques por `chunk_id`, decodifica Base64 y escribe bytes.
+      - Calcula SHA-256 local y lo compara con `body["digest"]`.
+      - Si coinciden, confirma “Descarga exitosa”; si no, muestra error.
+
+   7. En caso de fallo (timeout o conexión cerrada), devuelve **ERROR** y
+      no reintenta (versión actual). Se sugiere extender con reintentos
+      a otros dueños.
+
+6.6  Comportamiento del Bot IRC
+  
+   1. Conecta a un servidor IRC (p.ej. irc.libera.chat:6667) y se une a
+      canal `#wavenet`.
+   2. Al recibir mensaje público que comienza con “!list”:
+      - Se conecta al Hub → envía **FILE_LIST** → obtiene catálogo.
+      - Responde en el canal con la lista de nombres de archivo.
+   3. Al recibir “!get <archivo>”:
+      - Reproduce internamente el flujo de *FileClient*:  
+         • Envía **FILE_QUERY** al Hub.  
+         • Se conecta al primer owner y envía **FILE_REQUEST**.  
+         • Recibe **FILE_CHUNK** … **FILE_END**.  
+      - Tras finalizar, publica en el canal el resultado:
+         “Descarga de `<archivo>` completa. SHA-256=`<digest>`” o  
+         “Error: no se pudo descargar `<archivo>`”.
+
+   4. Si ocurre error en cualquier paso, publica “ERROR: <detalle>”.
+
+6.7  Ejemplo de Interacción (ASCII)
+   
+                         FileServiceDaemon A
+                               (NodeA)
+                            +-----------+
+                            |           |
+                            |   Watcher ────+
+                            |           |   |
+            FILE_REGISTER   |           |   |    FILE_CHUNK
+          ----------------> |   FileHub  |   +--------------+
+                            | (Tracker)  |                  |
+                            |           |  <— FILE_REQUEST   |
+   FileClient "prueba.txt"  |           |                  |
+      ---[Query]----------> |           |                  |
+                            +-----------+                  |
+                                 ^   |                     |
+                                 |   +— OWNERS: [NodeA]    |
+                                 |                         |
+            FILE_REQUEST         +— FileClient               |
+          ---------------->      |                         |
+                                 |                         |
+                              (NodeA)                       |
+                            +-----------+                  |
+                            |           | -- FILE_CHUNK -->|
+                            |  Server   |   (fragmentos)    |
+                            |           | <- FILE_END ------+
+                            +-----------+
+
+   El diagrama muestra cómo un *FileClient* primero consulta al *FileHub*,
+   luego coordina con el *FileServiceDaemon* de NodeA para recibir fragmentos
+   y reconstruir el archivo.
+
+6.8  Consideraciones Finales
+
+   - **Persistencia**: El índice del Hub se mantiene solo en memoria.  
+   - **Concurrencia**: Se usan hilos para watcher/servidor; el Hub atiende
+     peticiones secuencialmente por socket.  
+   - **Timeouts**: Versiones actuales no reintentan con otros dueños ante fallo.
+   - **Seguridad**: No hay cifrado en Capa 4; se asume que Capa 2/3 provee
+     canal confiable.  
+   - **Escalabilidad**: Un solo Hub se convierte en punto único de fallo.
+
+   Los implementadores pueden extender este diseño con:
+   - Réplica ligera del Hub y snapshots a disco.  
+   - Verificación de integridad por fragmento (CRC-32) y reintentos multi-owner.  
+   - Adaptación de *chunk size* según calidad de Capa 1.
+
+7.  Security Considerations
+
+    This protocol uses hybrid encryption. The packet body is encrypted 
+    using AES with a randomly generated key and nonce. The AES key and 
+    nonce are encrypted using the RSA public key of the destination node 
+    and included in the packet's metadata. The metadata must be decrypted 
+    before the packet can be decrypted.
+
+    Nodes must verify the success of RSA decryption before processing a 
+    packet. No authentication mechanisms are described in this version of 
+    the protocol.
+
+    Each entity present through the protocol should attempt to process the 
+    received data. However, upon failing, due to data loss or attacks, the 
+    entities should ignore the problematic data and continue functioning.
+
+    No additional security measures are employed.
+
+
+
+8.  IANA Considerations
+
+    This document has no actions for IANA.
+
+
+5.  References
+
+    [1] Fielding, R., et al. "Hypertext Transfer Protocol -- HTTP/1.1", 
+    RFC 2616, June 1999.
+
+    [2] [RFC 8259]: Douglas Crockford. _The JavaScript Object Notation 
+    (JSON) Data Interchange Format_. IETF, December 2017. 
+    https://datatracker.ietf.org/doc/html/rfc8259
+
+    [3] [RFC 3447]: Jonsson & Kaliski. _Public-Key Cryptography Standards 
+    (PKCS) #1: RSA Cryptography Specifications Version 2.1_. IETF, 
+    February 2003. https://datatracker.ietf.org/doc/html/rfc3447
+    
+    [4] [FIPS 197]: National Institute of Standards and Technology (NIST). 
+    _Advanced Encryption Standard (AES)_. November 2001. 
+    https://csrc.nist.gov/publications/detail/fips/197/final
+
+    [5] [RFC 7468]: Turner. _Textual Encodings of PKIX, PKCS, and CMS 
+    Structures_. IETF, April 2015. 
+    https://datatracker.ietf.org/doc/html/rfc7468
+
+    [6] [RFC 4648]: Josefsson. _The Base16, Base32, and Base64 Data 
+    Encodings_. IETF, October 2006. 
+    https://datatracker.ietf.org/doc/html/rfc4648
+
+    [7] [RFC 20]: Cerf. _ASCII format for Network Interchange_. IETF, 
+    October 1969. https://datatracker.ietf.org/doc/html/rfc20
+
+    [8] [RFC 791]: Postel. _Internet Protocol_. IETF, September 1981. 
+    https://datatracker.ietf.org/doc/html/rfc791
+
+    [9] [RFC 1122]: Braden. _Requirements for Internet Hosts – 
+    Communication Layers_. IETF, October 1989. 
+    https://datatracker.ietf.org/doc/html/rfc1122
+

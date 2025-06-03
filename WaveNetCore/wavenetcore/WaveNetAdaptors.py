@@ -75,6 +75,7 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 		"""
 
 		assert ID is None or type(ID) == int
+		assert ID != 0
 		assert type(protocols) == list
 		assert len(protocols) > 0
 		for protocol in protocols: assert isinstance(protocol, prot.Protocol)
@@ -149,7 +150,6 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 
 		assert self.is_alive
 		assert timeout is None or type(timeout) is float
-		if timeout is None: timeout = 3600.0
 		return super().recv_data(timeout=timeout)
 
 	def recv(self, ID, timeout=None):
@@ -164,7 +164,6 @@ class WaveNetBasicMeshNode(mesh.MeshNode):
 		assert self.is_alive
 		assert type(ID) == int
 		assert timeout is None or type(timeout) is float
-		if timeout is None: timeout = 60.0
 		return super().recv_data(ID=ID, timeout=timeout)
 	
 	def run(self):

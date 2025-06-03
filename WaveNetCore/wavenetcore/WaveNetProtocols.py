@@ -6,6 +6,7 @@ from threading import Thread, Event, Lock
 from wavenetcore.WaveNetPacketeering import *
 from dispositivo_wavenet.dispositivo_wavenet import DispositivoWaveNet as wn
 import logging
+import time
 
 class ProtocolType(Enum):
 	"""
@@ -36,6 +37,7 @@ class Protocol:
 		self.listener = listener
 		self.as_public = as_public
 		self.switch = Event()
+		self.wait_kill = Event()
 
 	def send(self, packet, dest):
 		"""
@@ -57,7 +59,8 @@ class Protocol:
 		"""
 
 		self.switch.clear()
-		t = Thread(target=self.listener, args=[func, self.switch], daemon=True)
+		self.wait_kill.clear()
+		t = Thread(target=self.listener, args=[func, self.switch, self.wait_kill], daemon=True)
 		t.start()
 		return t
 
@@ -76,6 +79,8 @@ class Protocol:
 		"""
 
 		self.switch.set()
+		self.wait_kill.wait()
+		
 
 class LocalProtocol(Protocol):
 	"""
@@ -112,7 +117,7 @@ class LocalProtocol(Protocol):
 			s.connect((LocalProtocol.IP, PORT))
 			s.sendall(data.encode())
 
-	def listener(self, func, switch):
+	def listener(self, func, switch, kill):
 		"""
 		Escucha por conexión entrantes y recibe información.
 
@@ -145,6 +150,7 @@ class LocalProtocol(Protocol):
 					Thread(target=process_conn, args=(conn,), daemon=True).start()
 				except socket.timeout:
 					pass
+		kill.set()
 
 	def as_public(self):
 		"""
@@ -198,7 +204,7 @@ class IPProtocol(Protocol):
 			s.connect((IP, PORT))
 			s.sendall(data.encode())
 
-	def listener(self, func, switch):
+	def listener(self, func, switch, kill):
 		"""
 		Escucha por conexión entrantes y recibe información.
 
@@ -233,6 +239,7 @@ class IPProtocol(Protocol):
 					Thread(target=process_conn, args=(conn,), daemon=True).start()
 				except socket.timeout:
 					pass
+		kill.set()
 
 	def as_public(self):
 		"""
@@ -280,6 +287,7 @@ class SoundProtocol(Protocol):
 	protocol_type = ProtocolType.SOUND
 	MAC = None
 	mutex = Lock()
+	send_mutex = Lock()
 
 	def __init__(self, mac=None):
 		"""
@@ -301,16 +309,18 @@ class SoundProtocol(Protocol):
 		"""
 
 		def temp():
-			with SoundProtocol.mutex:
-				w = wn(self.MAC, dest)
-				w.send(packet.form(), timeout=60*3)
+			with SoundProtocol.send_mutex:
+				with SoundProtocol.mutex:
+					w = wn(self.MAC, dest)
+					w.send(packet.form(), timeout=60*3)
+				time.sleep(10)
 
 		t = Thread(target=temp, args=(), daemon=True)
 		t.start()
 		return t
 	
 
-	def listener(self, func, switch):
+	def listener(self, func, switch, kill):
 		"""
 		Escucha por conexión entrantes y recibe información.
 
@@ -322,11 +332,12 @@ class SoundProtocol(Protocol):
 			try:
 				with SoundProtocol.mutex:
 					w = wn(self.MAC, "")
-					data = w.listen(timeout=60*3, init_timeout=40)
+					data = w.listen(timeout=60*3, init_timeout=5)
 				packet = reconstruct_packet(data)
 				func(packet)
 			except Exception as e:
 				logging.info(f"SoundProtocol listener died again : {str(e)}")
+		kill.set()
 
 	def as_public(self):
 		"""
