@@ -287,6 +287,7 @@ class SoundProtocol(Protocol):
 	protocol_type = ProtocolType.SOUND
 	MAC = None
 	mutex = Lock()
+	send_mutex = Lock()
 
 	def __init__(self, mac=None):
 		"""
@@ -308,9 +309,10 @@ class SoundProtocol(Protocol):
 		"""
 
 		def temp():
-			with SoundProtocol.mutex:
-				w = wn(self.MAC, dest)
-				w.send(packet.form(), timeout=60*3)
+			with SoundProtocol.send_mutex:
+				with SoundProtocol.mutex:
+					w = wn(self.MAC, dest)
+					w.send(packet.form(), timeout=60*3)
 				time.sleep(10)
 
 		t = Thread(target=temp, args=(), daemon=True)
