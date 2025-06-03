@@ -65,7 +65,7 @@ class WaveNetParser:
 
 		if args.soundp:
 			mac = args.soundp
-			protocols = NodeManager.get_sound_protocol(mac)
+			protocol = NodeManager.get_sound_protocol(mac)
 			protocols.append(protocol)
 			if not self.is_hub and args.soundc:
 				for idmac in args.soundc:

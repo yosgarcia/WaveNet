@@ -80,6 +80,7 @@ class MeshHub(Node):
 		self.private_key = PrivateKey()
 		info = NodeInfo(0, self.private_key)
 		self.node = Node(info, protocols, self.delegate)
+		data = self.private_key.public_key() if encrypt else "no encrypt"
 		self.nodes = {0: self.private_key.public_key()}
 		self.encrypt = encrypt
 		self.awaits = dict()
@@ -206,7 +207,12 @@ class MeshHub(Node):
 		if not status: raise Exception(ID)
 		status, pem = verify_tag(data, "pem", str)
 		if not status: raise Exception(pem)
-		public_key = PublicKey(pem=pem.encode())
+		try:
+			public_key = PublicKey(pem=pem.encode())
+		except Exception as e:
+			logging.warning(f"Couldnt parse PEM")
+			if self.encrypt: raise e
+			public_key = pem
 		logging.info(f"{ID} Wants to join network")
 		if ID in self.nodes: raise Exception("Repeated ID")
 		self.nodes[ID] = public_key
@@ -319,7 +325,11 @@ class MeshNode(Node):
 		if not status: raise Exception(ID)
 		status, pem = verify_tag(data, "pem", str)
 		if not status: raise Exception(pem)
-		public_key = PublicKey(pem=pem.encode())
+		try:
+			public_key = PublicKey(pem=pem.encode())
+		except Exception as e:
+			logging.warning(f"Got bad key, maybe target is unencrypted")
+			return "bad key"
 		return public_key
 	
 	def __send(self, dest, mtype, message):
@@ -333,6 +343,8 @@ class MeshNode(Node):
 
 		if self.hub_key is None: raise Exception("Node is not yet joined")
 		key = self.request(dest) if self.encrypt else None
+		if type(key) is str: key = None
+		if self.encrypt and key == None: raise Exception("Can't send encrypted message to target")
 		self.node.send(dest, mtype, message, public_key=key)
 	
 	def sends(self, dest, mtype, message):
@@ -352,9 +364,10 @@ class MeshNode(Node):
 		"""
 
 		with self.mutex:
+			data = str(self.private_key.public_key()) if self.encrypt else "no encrypt"
 			message = json.dumps({
 				"id" : self.node.info.ID,
-				"pem" : str(self.private_key.public_key())
+				"pem" : data
 				})
 			self.basic_send(0, "join", message)
 		time.sleep(0.5)

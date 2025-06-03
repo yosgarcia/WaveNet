@@ -33,7 +33,9 @@ class NodeManager:
 		for ID, protocol, data in connections:
 			if type(protocol) == LocalProtocol: node.connect(ID, protocol, str(data))
 			if type(protocol) == IPProtocol: node.connect(ID, protocol, IPProtocol.ip_to_json(data[0], data[1]))
-			if type(protocol) == SoundProtocol: node.connect(ID, protocol, data)
+			if type(protocol) == SoundProtocol:
+				node.connect(ID, protocol, data)
+				time.sleep(30)
 
 		node.join()
 
