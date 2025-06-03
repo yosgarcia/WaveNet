@@ -15,7 +15,7 @@ class NodeManager:
 	nodes = []
 
 	def get_hub(protocols):
-		hub = WaveNetBasicMeshHub(protocols, encrypt=encrypt)
+		hub = WaveNetBasicMeshHub(protocols, encrypt=NodeManager.encrypt)
 
 		hub.run()
 
@@ -23,8 +23,10 @@ class NodeManager:
 
 		return hub
 
-	def get_node(ID=None, protocols, connections):
-		node = WaveNetBasicMeshNode(protocols, ID=ID, encrypt=encrypt)
+	def get_node(ID=None, protocols=None, connections=None):
+		assert protocols is not None
+		assert connections is not None
+		node = WaveNetBasicMeshNode(protocols, ID=ID, encrypt=NodeManager.encrypt)
 
 		node.run()
 
@@ -38,6 +40,15 @@ class NodeManager:
 		NodeManager.nodes.append(node)
 
 		return node
+
+	def get_local_protocol(port):
+		return LocalProtocol(port)
+
+	def get_ip_protocol(ip, port):
+		return IPProtocol(ip, port)
+
+	def get_sound_protocol(mac):
+		return SoundProtocol(mac)
 	
 	def shutdown():
 		for node in nodes: node.kill()
