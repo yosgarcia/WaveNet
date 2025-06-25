@@ -7,6 +7,7 @@ from wavenetcore.WaveNetPacketeering import *
 from dispositivo_wavenet.dispositivo_wavenet import DispositivoWaveNet as wn
 import logging
 import time
+import sys
 
 class ProtocolType(Enum):
 	"""
@@ -310,11 +311,16 @@ class SoundProtocol(Protocol):
 
 		def temp():
 			with SoundProtocol.send_mutex:
-				with SoundProtocol.mutex:
-					w = wn(self.MAC, dest)
-					w.send(packet.form(), timeout=60*3)
-				time.sleep(10)
-
+				done = False
+				while not done:
+					with SoundProtocol.mutex:
+						if sys.platform == "darwin":
+							if not (int(time.time())//60%2 == 1 and int(time.time())%60 >= 5 and int(time.time())%60 <= 55): continue	
+						else:
+							if not (int(time.time())//60%2 == 0 and int(time.time())%60 >= 5 and int(time.time())%60 <= 55): continue
+						w = wn(self.MAC, dest)
+						w.send(packet.form(), timeout=60*3)
+						done = True
 		t = Thread(target=temp, args=(), daemon=True)
 		t.start()
 		return t
@@ -330,11 +336,18 @@ class SoundProtocol(Protocol):
 
 		while not switch.is_set():
 			try:
-				with SoundProtocol.mutex:
-					w = wn(self.MAC, "")
-					data = w.listen(timeout=60*3, init_timeout=5)
-				packet = reconstruct_packet(data)
-				func(packet)
+				done = False
+				while not done:
+					with SoundProtocol.mutex:
+						if sys.platform == "darwin":
+							if (int(time.time())//60%2 == 1 and int(time.time())%60 >= 5 and int(time.time())%60 <= 55): continue	
+						else:
+							if (int(time.time())//60%2 == 0 and int(time.time())%60 >= 5 and int(time.time())%60 <= 55): continue
+						w = wn(self.MAC, "")
+						data = w.listen(timeout=60*3, init_timeout=5)
+					packet = reconstruct_packet(data)
+					func(packet)
+					done = True
 			except Exception as e:
 				logging.info(f"SoundProtocol listener died again : {str(e)}")
 		kill.set()
