@@ -1,30 +1,54 @@
-# WaveNet
+# 🛰️ WaveNET Project
 
-## WaveNetCore
-Para instalar WaveNetCore, ejecutar (en esta carpeta):
-```
-pip install -e WaveNetCore
-```
-## DispositivoWaveNet
-Trama
-version - 1 byte
-mac origen - 6 bytes
-mac destino - 6 bytes
-tipo - 1 byte
-longitud payload - 0-107 byte
-checksum - 4 byte
-eof - 1 byte
+## Project Overview
 
-#### Bitacora espacial
+**WaveNET** is an experimental anonymous mesh network designed to enable secure, decentralized communication between nodes using unconventional physical media such as audio signlas.
 
-|Fecha | actividad |
-|-----|-----------|
-|9-05-2025|Diseño y definición de la lógica de la capa 1|
-|9-05-2025|Creación de tramas y generación de sonido para el envío|
-|12-05-2025|Detección y transmisión de sonido|
-|22-05-2025|Restructuración del códido de capa 1 y mejora en transmición|
-|24-05-2025|Comunicación de capa 1 con un archivo|
-|26-05-2025|Capa 1 funcional para un archivo pequeño|
-|27-05-2025|Creación de módulo para el uso de Dispositivo WaveNet|
-|27-05-2025|Envío de string por medio de audio|
+The project reimplements several layers of the OSI model combining low-level protocol design with application-level file sharing and IRC-based coordination.
 
+WaveNET allows nodes to:
+- Transmit data packets using sound via Raspberry Pi.
+- Route messages across multiple nodes with dynamic and anonymous mesh routing.
+- Share and retrieve files through an anonymous overlay network.
+- Bridge the anonymous network with the clearnet through an IRC bot and server.
+
+This project was developed in `Python` and GNU/Linux as operating system.
+
+---
+## System Architecture
+### Layer 1 - Physical Layer
+The physical medium for this network is audio. It will be managed by Raspberry Pi, referred to as the *Transmission Device* which acts as a network interface between two nodes, converting digital data into audio signals and vice versa.
+
+**Requirements:**
+- Maximun frame size: 128 bytes
+- Implement checksum verification
+- Support protocol versioning
+- Assign a unique physical address (similar to a MAC address)
+- Provide a library called `DispositivoWaveNET` to handle communication between the node and the Transmission Device
+---
+### Layer 2 & 3 - WaveNET Core
+WaveNET is an anonymous mesh network, designed to transmit packets across multiple hops without revealing the origin, similar to the Tor network.
+
+**Communication Channels:**
+- Ethernet
+- Wi-Fi 802.11x
+- Transmission Device (audio-based link)
+
+**Core Functionalities:**
+- Negotiated routing (dynamic routing through the mesh network)
+- Node directory service (discovery and registration of active nodes)
+- Anonymous packet transmission
+---
+### Layer 4 - Application
+#### WaveNET
+WaveNET acts as an anonymous file-sharing network, allowing users to exchange files securely and privately over the mesh.
+
+#### Clearnet
+
+A Clearnet IRC server must also be implemented to bridge communications with WaveNET.
+
+The server should host a bot responsible for:
+- Communicating with the WaveNET network
+- Republishing an index of available files on WaveNET
+
+---
